@@ -1,0 +1,19 @@
+\section{Delivered Source}
+The repository separates reusable local service code from the copy-ready additions required by a compatible sibling EICrecon checkout. The source tree is the primary public artifact; this report does not require private paths, protected outputs, or generated campaign files.
+
+\begin{table}[htbp]\centering\small
+\caption{Review map for the delivered source.}\begin{tabular}{L{0.36\linewidth}L{0.52\linewidth}}\toprule
+Path & Purpose\\\midrule
+\texttt{src/eic\_quantum/contracts/} & Strict truth-blind request and response schema plus digest validation.\\
+\texttt{src/eic\_quantum/payloads/} & Inverse-power state preparation for bounded candidate lists.\\
+\texttt{src/eic\_quantum/services/} & Persistent local Aer worker and bounded error handling.\\
+\texttt{integration/eicrecon/additions/} & C++ reconstruction, selector, socket client, factory, and focused test additions.\\
+\texttt{integration/eicrecon/README.md} & Exact copy list and two required sibling changes.\\
+\texttt{tests/python/} & Unit coverage for the exact-wire request digest.\\
+\texttt{docs/} & Architecture, method, and status boundaries.\\\bottomrule
+\end{tabular}\end{table}
+
+The Python material and copied C++ additions retain their documented licensing and provenance in the repository. The integration guide identifies nine additions and two tracked sibling modifications. This keeps the public deliverable reviewable without asserting that the additions have been accepted upstream.
+
+\measured The requested output contract names the event header, reconstructed Breit-frame particles, and reconstructed DirectCentauro jets. The exact collection identifiers are listed in the public integration guide. It preserves the event header, immediate Breit constituents, and DirectCentauro jets; it is not an archival event export.
+\clearpage

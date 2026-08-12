@@ -1,0 +1,19 @@
+\section{Evidence and Current Status}
+The following counts are accepted progress recorded by hash-bound external ledgers. Accepted means rows admitted only after validation. Raw ledgers are not bundled, so public repository contents alone cannot independently reproduce every count. These are coverage records, not numerical summaries of physics quality, agreement, latency, or scaling.
+
+\begin{table}[htbp]\centering\small
+\caption{Supplied progress coverage.}\begin{tabular}{L{0.26\linewidth}L{0.23\linewidth}L{0.38\linewidth}}\toprule
+Coverage & Status & Interpretation\\\midrule
+Shadow & 7080/7080 complete & The shadow workflow completed its recorded coverage.\\
+Hard & 600/600 complete & The hard-case workflow completed its recorded coverage.\\
+End-to-end & 40/40 complete & The end-to-end workflow completed its recorded coverage.\\
+Active & 56/300 partial & The active comparison stopped before full planned coverage.\\
+Final aggregate & Absent & No aggregate result is reported.\\\bottomrule
+\end{tabular}\end{table}
+
+\partialevidence The active comparison stopped with the classification \texttt{comparison\_layer\_}\\\texttt{type\_error}: no exact constituent-partition match left \texttt{max()} with no delta values, causing an unadmitted \texttt{TypeError}. Earlier accepted rows remain separate. This prevents treating the partial active count as a full comparison or inferring an aggregate conclusion.
+
+\measured The overall assessment is \textbf{PASS WITH LIMITATIONS}. It means source-inspected code and the listed hash-bound progress are documented, while the active comparison remains incomplete. No fabricated numerical summary is introduced here.
+
+\diagram{Evidence interpretation}{Completed counts establish that their listed coverage completed. The partial active count and absent aggregate limit the conclusion to implementation status and bounded progress, not performance or equivalence.}
+\clearpage

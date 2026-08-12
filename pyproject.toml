@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantum-centauro"
+version = "0.1.0"
+description = "Local Aer candidate selector for DirectCentauro reconstruction"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "GPL-3.0-only"}
+classifiers = [
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Programming Language :: Python :: 3",
+]
+dependencies = [
+  "qiskit==2.4.1",
+  "qiskit-aer==0.17.2",
+]
+
+[project.scripts]
+direct-centauro-quantum-worker = "eic_quantum.services.direct_centauro_quantum_worker:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

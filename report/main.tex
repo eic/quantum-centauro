@@ -1,0 +1,65 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{array,booktabs,xcolor,hyperref,graphicx,caption,fancyhdr,enumitem,listings}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue,pdftitle={Quantum Centauro: Local Integration Report}}
+\pagestyle{fancy}\fancyhf{}\lhead{Quantum Centauro local integration report}\rhead{\thepage}
+\setlength{\headheight}{14pt}
+\setlength{\emergencystretch}{2em}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\status}[1]{\par\noindent\colorbox{black!12}{\strut\textbf{#1}}\quad\ignorespaces}
+\newcommand{\measured}{\status{MEASURED}}
+\newcommand{\partialevidence}{\status{PARTIAL}}
+\newcommand{\scope}{\status{OUT OF SCOPE}}
+\newcommand{\diagram}[2]{\begin{figure}[htbp]\centering\fbox{\parbox{0.88\linewidth}{\centering\vspace{0.7em}\textbf{#1}\par\vspace{0.4em}\small #2\vspace{0.7em}}}\caption{#1}\end{figure}}
+\begin{document}
+\hypersetup{pageanchor=false}
+\begin{titlepage}\centering\vspace*{2.0cm}
+{\LARGE\bfseries Quantum-Assisted DirectCentauro Reconstruction\par}
+\vspace{0.5cm}
+{\Large Local Integration Report for the Electron-Ion Collider\par}
+\vfill
+\begin{minipage}{0.84\textwidth}\centering
+\textbf{Outcome.} A public, source-only local Aer and sibling EICrecon integration is delivered. Accepted progress is recorded by hash-bound external ledgers: shadow 7080/7080, hard 600/600, and end-to-end 40/40 are complete; active comparison is 56/300 and partial. No final aggregate is available.
+\end{minipage}
+\vfill
+{\large Public technical report\par}
+\end{titlepage}
+\hypersetup{pageanchor=true}
+\begin{abstract}
+This report documents a bounded local integration for DirectCentauro jet reconstruction. C++ retains event state, candidate construction, clustering actions, and output production. A local Python service samples a candidate index and returns it through a strict JSONL contract. The contract binds a response to the exact request bytes with SHA-256 before active-mode use. The delivered repository includes the Python implementation, copy-ready sibling EICrecon additions, integration instructions, protocol tests, and this report. The evidence supports implementation and progress-coverage claims only; it does not establish a performance result or quantum advantage.
+\end{abstract}
+\tableofcontents
+\clearpage
+\input{sections/01_outcome_and_scope}
+\input{sections/02_physics_and_direct_centauro}
+\input{sections/03_delivered_source}
+\input{sections/04_architecture_and_contract}
+\input{sections/05_selector_method}
+\input{sections/06_integration_and_modes}
+\input{sections/07_evidence_and_status}
+\input{sections/08_limitations_and_conclusion}
+\begin{thebibliography}{9}
+\bibitem{MitacsPlan2026}
+Unpublished internship brief.
+\newblock \emph{Quantum Algorithms at the Electron-Ion Collider}.
+\newblock Unpublished internship brief supplied by the author and supervisor, 2026; not a bundled public source.
+
+\bibitem{Martinez2022}
+Alvaro Martinez de Lejarza, Leandro Cieri, and German Rodrigo.
+\newblock Quantum clustering and jet reconstruction at the LHC.
+\newblock \emph{Physical Review D}, 106:036021, 2022.
+\newblock \href{https://doi.org/10.1103/PhysRevD.106.036021}{doi:10.1103/PhysRevD.106.036021}.
+
+\bibitem{Arratia2021}
+Miguel Arratia, Yiannis Makris, Duff Neill, Felix Ringer, and Nobuo Sato.
+\newblock Asymmetric jet clustering in deep-inelastic scattering.
+\newblock \emph{Physical Review D}, 104:034005, 2021.
+\newblock \href{https://doi.org/10.1103/PhysRevD.104.034005}{doi:10.1103/PhysRevD.104.034005}.
+
+\bibitem{Cacciari2012}
+Matteo Cacciari, Gavin P. Salam, and Gregory Soyez.
+\newblock FastJet user manual.
+\newblock \emph{European Physical Journal C}, 72:1896, 2012.
+\newblock \href{https://doi.org/10.1140/epjc/s10052-012-1896-2}{doi:10.1140/epjc/s10052-012-1896-2}.
+\end{thebibliography}
+\end{document}
