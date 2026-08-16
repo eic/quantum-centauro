@@ -1,6 +1,6 @@
 {
   "schema_version": "quantum-centauro-receipt/v1",
-  "receipt_scope": "Historical v0.1.0 release evidence plus intended v0.2.0 hash-bound final aggregate assets. Neither is a new scientific workload result or validation of the migrated external-plugin source tree.",
+  "receipt_scope": "Historical v0.1.0 release evidence plus v0.2.0 hash-bound final aggregate assets. Neither is a new scientific workload result or validation of the migrated external-plugin source tree.",
   "current_source_tree_status": {
     "classification": "source_only_external_jana_plugin_implementation",
     "native_certification": "NOT_CERTIFIED",
@@ -89,8 +89,8 @@
     "final_aggregate": {"status": "ABSENT"},
     "overall_status": "HISTORICAL_RELEASE_SNAPSHOT"
   },
-  "intended_v0_2_0_evidence_assets": {
-    "release_status": "INTENDED_UPLOAD_ONLY; no release, tag, commit, push, or network action was performed",
+  "v0_2_0_evidence_assets": {
+    "release_status": "PREPARED_AND_HASH_VERIFIED_FOR_V0.2.0",
     "classification": "Historical local campaign aggregate evidence. Package-integrity checks do not certify native external-plugin configure, build, CTest, load, linkage, or factory visibility.",
     "manifest": {
       "name": "manifest.json",
@@ -159,7 +159,7 @@
     "package_integrity_verification": "Passed pre/post packaging safety audit, JSON parsing, SHA-256 verification, archive member/path inspection, and forbidden-data scan. These checks establish packaging integrity only."
   },
   "supplied_final_campaign_facts": {
-    "classification": "historical supplied final facts; exact aggregate hashes are bound by intended v0.2.0 evidence assets",
+    "classification": "historical supplied final facts; exact aggregate hashes are bound by v0.2.0 evidence assets",
     "accepted_full_measurements": {
       "shadow": 7080,
       "hard": 600,
@@ -168,6 +168,6 @@
       "total": 8020
     },
     "smoke_controls": 10,
-    "final_aggregate_hashes": "See intended_v0_2_0_evidence_assets.final_aggregate_hashes."
+    "final_aggregate_hashes": "See v0_2_0_evidence_assets.final_aggregate_hashes."
   }
 }

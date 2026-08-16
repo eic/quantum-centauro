@@ -8,7 +8,7 @@ Classical reconstruction remains authoritative. The local selector is bounded an
 
 The verified native blocker is exact: pinned EICrecon `fcea66d38d21bf91cd510af3400f76dd8891a8a7` fails against nightly JANA because `JComponentManager::GetSources()` is absent. The fallback installed EICrecon export is separately broken because `services/io/podio/datamodel_glue_legacy.h` is missing. No native build or load result is claimed while either blocker remains.
 
-Historical campaign facts record 7,080 shadow, 600 hard, 40 end-to-end, and 300 active accepted full measurements (8,020 total), plus 10 separate smoke controls. The intended (not yet published) v0.2.0 upload is `quantum-centauro-local-evidence-v0.2.0.tar.gz` with standalone `manifest.json` and `SHA256SUMS`. It binds ten compact aggregate outputs to exact hashes; it is historical campaign evidence, not validation or native certification of this migrated source tree. See `evidence/receipt.json`.
+Historical campaign facts record 7,080 shadow, 600 hard, 40 end-to-end, and 300 active accepted full measurements (8,020 total), plus 10 separate smoke controls. The v0.2.0 evidence package comprises `quantum-centauro-local-evidence-v0.2.0.tar.gz`, standalone `manifest.json`, and `SHA256SUMS`. These assets bind ten compact aggregate outputs to exact hashes and establish package integrity only; they are historical campaign evidence, not validation or native certification of this migrated source tree. See `evidence/receipt.json`.
 
 ## Recipient Integration Procedure (Uncertified)
 
@@ -88,7 +88,7 @@ CI configuration may run the focused Python protocol test and shellcheck. It int
 
 ## Evidence, Provenance, And License
 
-`evidence/receipt.json` distinguishes immutable historical v0.1.0 release evidence from the intended v0.2.0 compact aggregate package and current-tree validation. The v0.2.0 package integrity checks prove the exact packaged aggregate files and their hash bindings, not a new scientific workload or external-plugin native result. Raw ledgers remain external and unbundled, so repository contents alone cannot independently reproduce accepted counts.
+`evidence/receipt.json` distinguishes immutable historical v0.1.0 release evidence from the v0.2.0 compact aggregate evidence package and current-tree validation. The v0.2.0 package integrity checks prove the exact packaged aggregate files and their hash bindings, not a new scientific workload or external-plugin native result. Raw ledgers remain external and unbundled, so repository contents alone cannot independently reproduce accepted counts.
 
 Python and scripts are GPL-3.0-only (`LICENSE`). The seven plugin source files retain LGPL-3.0-or-later SPDX headers (`LICENSES/LGPL-3.0.txt`); provenance is in `NOTICE`.
 
