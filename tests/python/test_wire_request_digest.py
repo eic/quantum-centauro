@@ -133,12 +133,14 @@ def test_local_payload_cap_accepts_128_candidates_without_aer():
 
 def test_shipped_cpp_fail_closed_default_and_response_guards_are_present():
     root = __import__("pathlib").Path(__file__).parents[2]
-    config_source = (root / "integration/eicrecon/additions/src/algorithms/reco/DirectCentauroJetReconstructionConfig.h").read_text()
-    socket_source = (root / "integration/eicrecon/additions/src/algorithms/reco/DirectCentauroQuantumSocketClient.h").read_text()
+    config_source = (root / "plugin/quantum_centauro/include/quantum_centauro/DirectCentauroJetReconstructionConfig.h").read_text()
+    socket_source = (root / "plugin/quantum_centauro/include/quantum_centauro/DirectCentauroQuantumSocketClient.h").read_text()
 
     assert "bool quantumFailClosed = false;" in config_source
-    assert "quantum_fail_closed=${QUANTUM_FAIL_CLOSED:-true}" in (root / "scripts/run-shadow").read_text()
-    assert 'quantumFailClosed="$quantum_fail_closed"' in (root / "scripts/run-shadow").read_text()
+    wrapper = (root / "scripts/run-reconstruction").read_text()
+    assert "quantum_fail_closed=${QUANTUM_FAIL_CLOSED:-true}" in wrapper
+    assert 'quantumFailClosed="$quantum_fail_closed"' in wrapper
+    assert "-Pplugins=quantum_centauro" in wrapper
     assert "reply.probabilities.back() < 0.0" in socket_source
     assert "!std::isfinite(reply.amplitudes.back())" in socket_source
     assert 'worker.contains("max_candidates")' in socket_source

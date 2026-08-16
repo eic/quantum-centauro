@@ -2,6 +2,6 @@ Quantum Centauro public-source provenance notice
 
 Local Python material under src/eic_quantum and the runtime wrappers are GPL-3.0 material; see LICENSE.
 
-The C++ additions under integration/eicrecon/additions are derived for integration with EICrecon and retain their SPDX-License-Identifier: LGPL-3.0-or-later notices. The corresponding LGPL text is retained at LICENSES/LGPL-3.0.txt.
+The C++ external plugin under plugin/quantum_centauro is derived from the DirectCentauro EICrecon integration at revision fcea66d38d21bf91cd510af3400f76dd8891a8a7 and retains its SPDX-License-Identifier: LGPL-3.0-or-later notices. The corresponding LGPL text is retained at LICENSES/LGPL-3.0.txt.
 
-The public copy adapts the local selector and integration boundary for a 128-candidate cap and exact UTF-8 request-payload SHA-256 binding, excluding the JSONL framing LF. It is provided as a source integration work unit, not as an upstream EICrecon release.
+The public plugin preserves the local selector boundary: a 128-candidate cap and exact UTF-8 request-payload SHA-256 binding, excluding the JSONL framing LF. It is an external plugin, not an upstream EICrecon release.

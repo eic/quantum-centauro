@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (C) 2024 Derek Anderson, Zhongling Ji, Dmitry Kalinkin, John Lajoie
 
-#include "DirectCentauroJetReconstruction.h"
+#include "quantum_centauro/DirectCentauroJetReconstruction.h"
 
 #include <edm4eic/EDM4eicVersion.h>
 #if EDM4EIC_BUILD_VERSION >= EDM4EIC_VERSION(8, 9, 0)
@@ -10,6 +10,7 @@
 #include <edm4eic/ReconstructedParticleCollection.h>
 #include <edm4hep/Vector3f.h>
 #include <edm4hep/utils/vector_utils.h>
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <iomanip>
@@ -453,11 +454,11 @@ void DirectCentauroJetReconstruction<InputT>::process(
                 << ",\"worker_request_parsing_validation_ms\":" << workerRequestParsingValidationMilliseconds
                 << ",\"worker_response_assembly_serialization_ms\":" << workerResponseAssemblyMilliseconds
                 << ",\"worker_identity\":";
-       if (workerIdentity.empty()) {
-         trace << "null";
-       } else {
-         trace << "\"" << workerIdentity << "\"";
-       }
+        if (workerIdentity.empty()) {
+          trace << "null";
+        } else {
+          trace << nlohmann::json(workerIdentity).dump();
+        }
        trace << ",\"fallback\":" << (fallback ? "true" : "false")
             << ",\"fallback_reason\":";
       if (fallback) {

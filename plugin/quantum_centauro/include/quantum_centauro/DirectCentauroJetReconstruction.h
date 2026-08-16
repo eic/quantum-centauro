@@ -17,9 +17,9 @@
 #include <string_view>
 #include <vector>
 
-#include "DirectCentauroJetMinimumSelector.h"
-#include "DirectCentauroQuantumSocketClient.h"
-#include "DirectCentauroJetReconstructionConfig.h"
+#include "quantum_centauro/DirectCentauroJetMinimumSelector.h"
+#include "quantum_centauro/DirectCentauroQuantumSocketClient.h"
+#include "quantum_centauro/DirectCentauroJetReconstructionConfig.h"
 #include "algorithms/interfaces/WithPodConfig.h"
 
 namespace eicrecon {

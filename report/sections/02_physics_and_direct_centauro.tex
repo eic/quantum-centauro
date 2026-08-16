@@ -1,9 +1,0 @@
-\section{Physics Context and DirectCentauro}
-Jet reconstruction groups particles into physically meaningful final-state objects. In deep-inelastic scattering, the choice of coordinates and distance measure matters because the beam direction is distinguished. Centauro is an asymmetric jet-clustering context developed for this setting \cite{Arratia2021}. The DirectCentauro implementation here constructs pair and beam candidates directly in the reconstruction algorithm rather than presenting itself as a replacement for another jet package.
-
-For each active working jet, the implementation derives a Centauro-coordinate representation from its four-vector. Pair candidates use a non-negative distance in that coordinate space, while a beam candidate finalizes an active jet. The classical selector chooses the first finite minimum, which makes equal-distance behavior deterministic.
-
-\diagram{One clustering iteration}{C++ builds ordered pair and beam candidates from active jets. A selection identifies either a pair to merge or one jet to finalize. C++ applies that action and repeats until no active jets remain.}
-
-\measured The direct implementation creates candidates, applies merges or beam actions, preserves constituent references, and writes DirectCentauro jet output in the sibling integration additions. It is intentionally an experimental direct implementation. Published jet-algorithm references motivate the context; they are not validation evidence for this implementation \cite{Cacciari2012,Arratia2021}.
-\clearpage

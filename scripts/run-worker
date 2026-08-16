@@ -31,11 +31,6 @@ prepare_run_directory RUN_DIR
   printf 'PYTHON_BIN is unsafe\n' >&2
   exit 2
 }
-[[ -d "$repo_root/../EICrecon" ]] || {
-  printf 'sibling EICrecon checkout is unavailable\n' >&2
-  exit 2
-}
-
 socket_path="$RUN_DIR/direct-centauro-worker.sock"
 lifecycle_path="$RUN_DIR/direct-centauro-worker.lifecycle.json"
 [[ ! -e "$socket_path" && ! -L "$socket_path" && ! -e "$lifecycle_path" && ! -L "$lifecycle_path" ]] || {

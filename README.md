@@ -1,125 +1,95 @@
-# Quantum Centauro
+# Quantum Centauro External Plugin
 
-`eic/quantum-centauro` is a source-only, local-Qiskit-Aer candidate selector for the DirectCentauro EICrecon integration. Follow [the integration guide](integration/eicrecon/README.md) for the addition categories and tracked changes, then install this package and run the worker plus one reconstruction wrapper with the same `RUN_DIR`.
+This tree is an external JANA plugin **source implementation** for the pinned EICrecon revision `fcea66d38d21bf91cd510af3400f76dd8891a8a7`. Native configure, build, CTest, plugin load, linkage, and factory visibility are **not certified** for this migrated external plugin.
 
-| Status | Scope | Evidence status |
-| --- | --- | --- |
-| `PASS WITH LIMITATIONS` | Local Qiskit Aer plus sibling EICrecon only | Shadow `7080/7080` complete; hard `600/600` complete; E2E `40/40` complete; active `56/300` partial |
+## Status
 
-The active comparison stopped after an unadmitted comparison-layer `TypeError`. There is no final aggregate. These are progress-coverage records, not aggregate performance statistics.
+Classical reconstruction remains authoritative. The local selector is bounded and local-only; it does not establish a quantum advantage or replace the classical reconstruction path.
 
-## Layout
+The verified native blocker is exact: pinned EICrecon `fcea66d38d21bf91cd510af3400f76dd8891a8a7` fails against nightly JANA because `JComponentManager::GetSources()` is absent. The fallback installed EICrecon export is separately broken because `services/io/podio/datamodel_glue_legacy.h` is missing. No native build or load result is claimed while either blocker remains.
 
-```text
-parent/
-├── EICrecon/                 # recipient-maintained sibling checkout
-└── quantum-centauro/         # this repository
+Historical campaign facts record 7,080 shadow, 600 hard, 40 end-to-end, and 300 active accepted full measurements (8,020 total), plus 10 separate smoke controls. The intended (not yet published) v0.2.0 upload is `quantum-centauro-local-evidence-v0.2.0.tar.gz` with standalone `manifest.json` and `SHA256SUMS`. It binds ten compact aggregate outputs to exact hashes; it is historical campaign evidence, not validation or native certification of this migrated source tree. See `evidence/receipt.json`.
+
+## Recipient Integration Procedure (Uncertified)
+
+These commands describe the intended recipient procedure only; they were not successfully run for this source tree. They require an EICrecon installation with compatible exported CMake packages, JANA dependencies, and ABI; CMake 3.24 or newer; a C++20 compiler; and nlohmann_json. Running the worker also requires Python 3.10 or newer with `qiskit==2.4.1` and `qiskit-aer==0.17.2`. The recipient owns the EICrecon installation and ABI compatibility.
+
+```bash
+cmake -S . -B build -DCMAKE_PREFIX_PATH=/opt/eicrecon-install -DCMAKE_INSTALL_PREFIX=/opt/quantum-centauro
+cmake --build build
+cmake --install build
 ```
 
-| Path | Purpose |
+If native integration succeeds in a compatible recipient environment, the intended install location is `/opt/quantum-centauro/plugins/quantum_centauro.so`. Tell EICrecon to add that directory through its external-plugin prefix convention:
+
+```bash
+export EICrecon_MY=/opt/quantum-centauro
+```
+
+If the recipient's installed `eicrecon` supports JANA's factory-list mode, a no-event load and factory/config check is:
+
+```bash
+eicrecon -Pplugins=quantum_centauro -L | grep -E 'GeneratedDirectCentauroJets|ReconstructedDirectCentauroJets'
+```
+
+This command is an intended recipient check, not a certified load or factory-visibility result.
+
+## Run Locally
+
+Use two terminals with the same fresh `RUN_DIR`. The worker and wrapper reject unsafe paths, unapproved basenames, missing input/socket, and existing output or trace files. `INPUT_BASENAME` must be listed in `examples/input_files.txt`.
+
+Terminal 1 starts the local worker:
+
+```bash
+RUN_DIR=/absolute/new-run PYTHON_BIN=python3 bash scripts/run-worker
+```
+
+Terminal 2 reconstructs in shadow or active mode:
+
+```bash
+RUN_DIR=/absolute/new-run INPUT_DIR=/absolute/input INPUT_BASENAME=<approved-input> EICRECON_BIN=eicrecon EICRECON_TIMEOUT_MILLISECONDS=1000 bash scripts/run-reconstruction shadow
+RUN_DIR=/absolute/new-run INPUT_DIR=/absolute/input INPUT_BASENAME=<approved-input> EICRECON_BIN=eicrecon EICRECON_TIMEOUT_MILLISECONDS=1000 bash scripts/run-reconstruction active
+```
+
+`run-reconstruction` always passes `-Pplugins=quantum_centauro`, uses the `Reco:ReconstructedDirectCentauroJets:` prefix, caps candidates at `128`, sets `512` shots, exponent `3.0`, seed `314159`, and `-Pnthreads=1`.
+
+## Modes And Ownership
+
+| Mode | Selection behavior |
 | --- | --- |
-| `src/eic_quantum/` | Local Aer worker, payload preparation, and request/response validation |
-| `integration/eicrecon/` | Copy-ready C++ additions and the only detailed integration guide |
-| `scripts/` | Worker, shadow, and active runtime wrappers |
-| `tests/python/` | Exact-wire digest unit test |
-| `docs/` | Architecture, method, scope, and evidence boundaries |
+| `shadow` | Sends the candidate-index request to the local Qiskit worker for diagnostics but applies the classical action. It defaults to fail-closed; `QUANTUM_FAIL_CLOSED=false` is an explicitly exploratory override. |
+| `active` | Applies only a schema-valid candidate index whose `request_sha256` matches the exact UTF-8 request JSON bytes, excluding the JSONL newline. It is always fail-closed. |
 
-## Prerequisites
+EICrecon/C++ owns event state, candidate distances, action application, and EDM output. Python receives only a blind candidate list and returns the only actionable proposal, a candidate index. Diagnostics are non-actionable. An exact-zero pair distance bypasses the worker and is applied locally by C++.
 
-- Python 3.10 or newer with local `qiskit==2.4.1`, `qiskit-aer==0.17.2`, and `pytest` available.
-- A compatible, built sibling `EICrecon/` checkout at the pinned base revision recorded in `integration/eicrecon/README.md`. Acquire it from [the official EICrecon repository](https://github.com/eic/EICrecon); the recipient owns its build, environment, and fixture acquisition.
-- External input files named in `examples/input_files.txt`.
-- An AF_UNIX-capable local filesystem. No remote providers, QPUs, fake backends, grid services, or network runtime are used.
+## Outputs And Limits
 
-## Install And Integrate
+The wrapper writes `<mode>.edm4eic.root` and `<mode>.trace.jsonl` under `RUN_DIR`. It deliberately requests only `EventHeader`, `ReconstructedBreitFrameParticles`, and `ReconstructedDirectCentauroJets`. This bounded demo output is not relation-closed and may leave dangling PODIO references if treated as an archival file.
 
-1. Clone this repository beside the recipient-maintained EICrecon checkout:
-
-   ```bash
-   git clone <quantum-centauro-repository-url> quantum-centauro
-   cd quantum-centauro
-   ```
-
-2. Copy the integration additions into the sibling checkout:
-
-   ```bash
-   cp -a integration/eicrecon/additions/. ../EICrecon/
-   ```
-
-3. Apply the exact two tracked EICrecon modifications from [the integration guide](integration/eicrecon/README.md).
-4. Build the modified sibling with its established EICrecon environment.
-5. Install this local package:
-
-   ```bash
-   python3 -m pip install .
-   ```
-
-## Run
-
-Set recipient-provided paths. `RUN_DIR` must be a new or empty absolute directory; wrappers refuse existing mode outputs and lifecycle targets.
-
-```bash
-export RUN_DIR=/absolute/path/to/run
-export PYTHON_BIN=python3
-export EICRECON_BIN=/absolute/path/to/eicrecon
-export EICRECON_TIMEOUT_MILLISECONDS=1000
-export INPUT_DIR=/absolute/path/to/inputs
-export INPUT_BASENAME="$(sed -n '1p' examples/input_files.txt)"
-```
-
-Terminal 1: this command blocks while serving. Keep it running.
-
-```bash
-bash scripts/run-worker
-```
-
-Terminal 2: after the worker socket is ready, use the **same** `RUN_DIR`.
-
-```bash
-bash scripts/run-shadow
-# or
-bash scripts/run-active
-```
-
-The wrappers fix `--max-candidates 128`, `--shots 512`, exponent `3.0`, seed `314159`, and `-Pnthreads=1`. `run-shadow` defaults to `QUANTUM_FAIL_CLOSED=true`; its only exploratory override is `QUANTUM_FAIL_CLOSED=false`. `run-active` is always fail-closed.
-
-| Mode | C++ behavior |
-| --- | --- |
-| `qiskit_shadow` | Requests and records the local Aer choice, then applies the classical candidate action. |
-| `qiskit_active` | Applies only a validated candidate index bound to the exact request bytes. Oversize, invalid, mismatched, timeout, and unavailable replies follow the fail-closed configuration. |
-
-## Output Contract
-
-Shadow writes `RUN_DIR/shadow.edm4eic.root` and `RUN_DIR/shadow.trace.jsonl`; active writes corresponding `active` files. Each wrapper requests exactly:
-
-```text
-EventHeader,ReconstructedBreitFrameParticles,ReconstructedDirectCentauroJets
-```
-
-This preserves the event header, immediate Breit constituents, and DirectCentauro jets. It is not a relation-closed or archival event export. The worker response binds `request_sha256` to SHA-256 of the exact UTF-8 JSON payload bytes, excluding the JSONL LF delimiter.
+No IBM/QPU, remote provider, OSG, token distribution, network execution, production adoption, performance advantage, or quantum-speedup claim is made by this repository. The retained local worker and Qiskit/Aer references are source implementation only, not an executed workload claim. One EICrecon thread is required by the scientific wrappers for reproducible ordering.
 
 ## Tests
 
-Run the focused protocol test without starting the worker:
+The standalone CMake test target is an intended recipient check when a compatible EICrecon dependency is installed; it was not run for this migrated source tree:
 
 ```bash
-PYTHONPATH=src python3 -m pytest tests/python/test_wire_request_digest.py
+cmake -S . -B build -DBUILD_TESTING=ON -DCMAKE_PREFIX_PATH=/opt/eicrecon-install
+cmake --build build
+ctest --test-dir build --output-on-failure
 ```
 
-Use `bash -n scripts/run-worker scripts/run-shadow scripts/run-active` for wrapper syntax. `shellcheck` is optional when installed.
+The focused Python protocol test is independent of EICrecon:
 
-## Limitations
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=src python3 -m pytest -p no:cacheprovider tests/python/test_wire_request_digest.py
+```
 
-- C++ owns event state, candidate distances, clustering mutation, and EDM output. Python's only actionable reconstruction proposal is a bounded, validated candidate index; diagnostics also carry counts, probabilities, timings, and metadata.
-- The method is inverse-distance sampling, not an exact quantum minimum finder.
-- No claim is made for quantum speedup, hardware execution, remote execution, production readiness, universal FastJet equivalence, or multithread qualification.
-- Evidence is accepted progress recorded by hash-bound external ledgers; raw ledgers are not bundled, so each count is not independently reproducible from this repository alone. Active is partial and the final aggregate is absent. See `evidence/provenance.json` and `docs/project-status.md`. The active failure occurred when no exact constituent-partition match left `max()` with no delta values, causing an unadmitted `comparison_layer_type_error`; earlier accepted rows remain separate.
+CI configuration may run the focused Python protocol test and shellcheck. It intentionally does not certify C++ coverage because it does not provision a compatible installed EICrecon dependency.
 
-## Citations
+## Evidence, Provenance, And License
 
-- J. J. Martinez de Lejarza, L. Cieri, and G. Rodrigo, *Quantum clustering and jet reconstruction at the LHC*, Phys. Rev. D 106, 036021 (2022), DOI `10.1103/PhysRevD.106.036021`, arXiv:2204.06496.
-- M. Arratia et al., *Asymmetric jet clustering in deep-inelastic scattering*, Phys. Rev. D 104, 034005 (2021), DOI `10.1103/PhysRevD.104.034005`, arXiv:2006.10751.
+`evidence/receipt.json` distinguishes immutable historical v0.1.0 release evidence from the intended v0.2.0 compact aggregate package and current-tree validation. The v0.2.0 package integrity checks prove the exact packaged aggregate files and their hash bindings, not a new scientific workload or external-plugin native result. Raw ledgers remain external and unbundled, so repository contents alone cannot independently reproduce accepted counts.
 
-## License And Provenance
+Python and scripts are GPL-3.0-only (`LICENSE`). The seven plugin source files retain LGPL-3.0-or-later SPDX headers (`LICENSES/LGPL-3.0.txt`); provenance is in `NOTICE`.
 
-Local Python material is GPL-3.0; see `LICENSE`. The copied EICrecon additions retain their `LGPL-3.0-or-later` SPDX identifiers and `LICENSES/LGPL-3.0.txt`. `NOTICE` records the source provenance and modifications.
+Historical PDF and notebook deliverables belong only to the immutable [v0.1.0 Release](https://github.com/eic/quantum-centauro/releases/tag/v0.1.0); they are intentionally absent from this compact source repository.

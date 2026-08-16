@@ -8,6 +8,7 @@
 #include <edm4eic/ReconstructedParticleCollection.h>
 #include <edm4hep/EventHeaderCollection.h>
 #include <edm4hep/Vector3f.h>
+#include <nlohmann/json.hpp>
 #include <atomic>
 #include <chrono>
 #include <cerrno>
@@ -15,6 +16,7 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <sstream>
 #include <stdexcept>
 #include <set>
 #include <string>
@@ -26,10 +28,10 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#include "algorithms/reco/DirectCentauroJetMinimumSelector.h"
-#include "algorithms/reco/DirectCentauroJetReconstruction.h"
-#include "algorithms/reco/DirectCentauroJetReconstructionConfig.h"
-#include "algorithms/reco/DirectCentauroQuantumSocketClient.h"
+#include "quantum_centauro/DirectCentauroJetMinimumSelector.h"
+#include "quantum_centauro/DirectCentauroJetReconstruction.h"
+#include "quantum_centauro/DirectCentauroJetReconstructionConfig.h"
+#include "quantum_centauro/DirectCentauroQuantumSocketClient.h"
 
 using eicrecon::DirectCentauroCandidate;
 using eicrecon::DirectCentauroCandidateKind;
@@ -49,7 +51,8 @@ std::string testSocketPath() {
 }
 
 std::string blindResponse(std::size_t index, const nlohmann::json& request,
-                          std::string_view schemaVersion = "selector-response/v1");
+                           std::string_view schemaVersion = "selector-response/v1",
+                           std::string_view workerIdentity = "direct_centauro_aer_1234");
 
 class ScriptedSocket final {
 public:
@@ -88,6 +91,10 @@ public:
           const auto requestJson = nlohmann::json::parse(request);
           actualReply = blindResponse(std::stoull(reply.substr(11)), requestJson,
                                       "selector-response/v2");
+        } else if (reply.rfind("dynamic-escaped:", 0) == 0) {
+          const auto requestJson = nlohmann::json::parse(request);
+          actualReply = blindResponse(std::stoull(reply.substr(16)), requestJson,
+                                      "selector-response/v1", "worker\"\\identity\n");
         } else if (reply.rfind("invalid-v2:", 0) == 0) {
           const auto requestJson = nlohmann::json::parse(request);
           auto response = nlohmann::json::parse(
@@ -124,8 +131,9 @@ private:
 };
 
 std::string runQuantumMode(const std::string& mode, const std::string& socketPath,
-                           const std::string& tracePath,
-                           const std::size_t particleCount = 2U) {
+                            const std::string& tracePath,
+                            const std::size_t particleCount = 2U,
+                            const bool failClosed = false) {
   DirectCentauroAlgorithm algorithm("DirectCentauroQuantumModeTest");
   DirectCentauroJetReconstructionConfig config;
   config.rJet = 1.0F;
@@ -135,6 +143,7 @@ std::string runQuantumMode(const std::string& mode, const std::string& socketPat
   config.quantumMode = mode;
   config.quantumSocketPath = socketPath;
   config.quantumTracePath = tracePath;
+  config.quantumFailClosed = failClosed;
   algorithm.applyConfig(config);
   algorithm.init();
 
@@ -152,7 +161,7 @@ std::string runQuantumMode(const std::string& mode, const std::string& socketPat
 }
 
 std::string blindResponse(std::size_t index, const nlohmann::json& request,
-                          std::string_view schemaVersion) {
+                           std::string_view schemaVersion, std::string_view workerIdentity) {
   const auto requestId = request.at("request_id").get<std::string>();
   const auto candidateCount = request.at("candidates").size();
   nlohmann::json counts = nlohmann::json::object();
@@ -171,7 +180,7 @@ std::string blindResponse(std::size_t index, const nlohmann::json& request,
       {"request_sha256", eicrecon::directCentauroSha256(request.dump())}, {"schema_version", schemaVersion},
       {"selected_candidate_index", index}, {"status", "ok"},
       {"timings_ms", {{"sampling", 1.0}, {"state_preparation", 0.5}}},
-      {"worker", {{"identity", "direct_centauro_aer_1234"}, {"implementation", "direct_centauro_aer"}, {"pid", 1234}, {"request_sequence", 9}}},
+       {"worker", {{"identity", workerIdentity}, {"implementation", "direct_centauro_aer"}, {"pid", 1234}, {"request_sequence", 9}}},
       {"zero_distance_bypass", false},
   };
   if (schemaVersion == "selector-response/v2") {
@@ -551,6 +560,28 @@ TEST_CASE("DirectCentauro quantum modes retain bounded local fallback semantics"
     const auto trace = runQuantumMode("qiskit_active", server.path(), tracePath.string());
     REQUIRE(trace.find("\"sampled_index\":1,\"applied_index\":1") != std::string::npos);
     REQUIRE(trace.find("\"qiskit_applied\":true") != std::string::npos);
+    REQUIRE(trace.find("\"preparation_method\":\"stabilized_state_preparation\"") !=
+            std::string::npos);
+    REQUIRE(trace.find("\"request_serialization_ms\":") != std::string::npos);
+    REQUIRE(trace.find("\"worker_request_parsing_validation_ms\":0.1") !=
+            std::string::npos);
+    cleanup();
+  }
+
+  SECTION("trace JSONL preserves an escaped worker identity") {
+    ScriptedSocket server({"dynamic-escaped:1", "dynamic-escaped:0"});
+    const auto trace = runQuantumMode("qiskit_shadow", server.path(), tracePath.string());
+    std::istringstream lines(trace);
+    std::string line;
+    std::size_t iterationCount = 0U;
+    while (std::getline(lines, line)) {
+      const auto record = nlohmann::json::parse(line);
+      if (record.at("record_type") == "iteration") {
+        REQUIRE(record.at("worker_identity") == "worker\"\\identity\n");
+        ++iterationCount;
+      }
+    }
+    REQUIRE(iterationCount == 2U);
     cleanup();
   }
 
@@ -581,6 +612,22 @@ TEST_CASE("DirectCentauro quantum modes retain bounded local fallback semantics"
     const auto trace = runQuantumMode("qiskit_shadow", testSocketPath(), tracePath.string(), 8U);
     REQUIRE(trace.find("\"fallback_reason\":\"local_oversize_guard\"") != std::string::npos);
     REQUIRE(trace.find("\"fallback_count\":") != std::string::npos);
+    cleanup();
+  }
+
+  SECTION("active fail-closed rejects unavailable, malformed, and oversize requests") {
+    REQUIRE_THROWS_AS(
+        runQuantumMode("qiskit_active", testSocketPath(), tracePath.string(), 2U, true),
+        std::runtime_error);
+    cleanup();
+    ScriptedSocket malformed({"ERR\n"});
+    REQUIRE_THROWS_AS(
+        runQuantumMode("qiskit_active", malformed.path(), tracePath.string(), 2U, true),
+        std::runtime_error);
+    cleanup();
+    REQUIRE_THROWS_AS(
+        runQuantumMode("qiskit_active", testSocketPath(), tracePath.string(), 8U, true),
+        std::runtime_error);
     cleanup();
   }
 

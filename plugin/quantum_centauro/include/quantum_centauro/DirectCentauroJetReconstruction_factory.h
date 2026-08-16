@@ -6,8 +6,8 @@
 #include <cstdint>
 #include <memory>
 
-#include "algorithms/reco/DirectCentauroJetReconstruction.h"
-#include "algorithms/reco/DirectCentauroJetReconstructionConfig.h"
+#include "quantum_centauro/DirectCentauroJetReconstruction.h"
+#include "quantum_centauro/DirectCentauroJetReconstructionConfig.h"
 #include "extensions/jana/JOmniFactory.h"
 
 namespace eicrecon {

@@ -21,7 +21,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#include "DirectCentauroJetMinimumSelector.h"
+#include "quantum_centauro/DirectCentauroJetMinimumSelector.h"
 
 namespace eicrecon {
 

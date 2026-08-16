@@ -1,0 +1,173 @@
+{
+  "schema_version": "quantum-centauro-receipt/v1",
+  "receipt_scope": "Historical v0.1.0 release evidence plus intended v0.2.0 hash-bound final aggregate assets. Neither is a new scientific workload result or validation of the migrated external-plugin source tree.",
+  "current_source_tree_status": {
+    "classification": "source_only_external_jana_plugin_implementation",
+    "native_certification": "NOT_CERTIFIED",
+    "not_certified": [
+      "native configure",
+      "native build",
+      "CTest",
+      "plugin load",
+      "linkage",
+      "factory visibility"
+    ],
+    "classical_reconstruction": "authoritative",
+    "verified_native_blockers": [
+      "Pinned EICrecon fcea66d38d21bf91cd510af3400f76dd8891a8a7 fails against nightly JANA because JComponentManager::GetSources() is absent.",
+      "Fallback installed EICrecon export is separately broken because services/io/podio/datamodel_glue_legacy.h is missing."
+    ]
+  },
+  "verification": {
+    "schema_version": "public-verification/v1",
+    "timestamp": "2026-08-12T00:00:00Z",
+    "scope": "historical v0.1.0 release checks. They are not current-tree validation; no Qiskit, Aer, worker, EICrecon, ROOT, or scientific workload execution is claimed for the migrated source tree.",
+    "historical_record": {
+      "command": "PYTHONPATH=src python3 -m pytest tests/python/test_wire_request_digest.py",
+      "result": "7 pytest tests passed locally",
+      "classification": "local unit verification, not campaign measurement"
+    },
+    "historical_release_checks": {
+      "pytest": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=src python3 -m pytest -p no:cacheprovider tests/python/test_wire_request_digest.py",
+        "result": "10 passed in 0.13s",
+        "safety_basis": "Qiskit and Aer imports are deferred to sampling functions not called by this suite."
+      },
+      "bash_syntax_pre_migration_wrappers": {
+        "command": "bash -n scripts/run-worker scripts/run-shadow scripts/run-active",
+        "result": "passed"
+      },
+      "notebooks_removed_from_current_tree": {
+        "command": "jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=120 notebooks/<name>.ipynb",
+        "result": "both bundled-evidence notebooks executed successfully; each has 2 code-cell outputs and no errors"
+      },
+      "latex_report_removed_from_current_tree": {
+        "command": "make -C report clean && make -C report",
+        "result": "passed; report PDF rebuilt with 10 pages"
+      },
+      "shellcheck": "Historical release record; it is not a current-tree validation result."
+    }
+  },
+  "provenance": {
+    "schema_version": "public-provenance/v1",
+    "scope": "historical v0.1.0 campaign using local Aer plus sibling EICrecon; not validation of this migrated external-plugin source tree",
+    "evidence_classification": "hash-bound external ledger receipt",
+    "source_schema": "minimal-final-statistics/v2",
+    "plan": {
+      "sha256": "81cd79bd35ae13683952a40c1b2a3f724df7db8049b0be7c939191a1b1ca5a0d",
+      "bytes": 1175,
+      "declared_plan_sha256": "2b0dc673d51dddfdbf96aa7080d9b6aca958d19d795110856488187eaabf5902",
+      "declared_digest_matches_current_file": false,
+      "digest_disclosure_note": "The manifest binds the current plan bytes while preserving the source-declared digest for transparency."
+    },
+    "accepted_ledgers": [
+      {"stage": "shadow", "sha256": "d72791a9f90d521631ca9f6a74411ff78ce170e6353c79c16bd9e1c2119260a3", "bytes": 12958397, "accepted_rows": 7080},
+      {"stage": "hard", "sha256": "60e41872ba9c71f97ae730da4f3bb5b50df00604a9f78f2960af1f792b530819", "bytes": 898384, "accepted_rows": 600},
+      {"stage": "end_to_end", "sha256": "4057101c55f082713417d551cb421ad069629ffb48e99a5321eb775f7f6c0c97", "bytes": 191212, "accepted_rows": 40},
+      {"stage": "active", "sha256": "19ee5ad062035faf80a22e33d4c2b6a810b629320e5733f0584b0b5b596df1e0", "bytes": 1334638, "accepted_rows": 56}
+    ],
+    "failed_attempt": {
+      "status_sha256": "cbe0775724a7cfd91c2f24733bd847b457c6e30f620923049e4fe41a03bbab4d",
+      "status_bytes": 294,
+      "classification": "comparison_layer_type_error"
+    },
+    "reproducibility_note": "The raw ledgers are external and are not bundled. Their hashes bind this public receipt to supplied source records, but public repository contents alone cannot independently reproduce every accepted count."
+  },
+  "campaign_progress": {
+    "schema_version": "campaign-progress/v2",
+    "publication_snapshot_date": "2026-08-12",
+    "source_note": "Accepted progress recorded by hash-bound external ledgers in evidence/provenance.json; it is not a new verification timestamp or an independently reproducible public aggregate.",
+    "provenance_manifest_sha256": "c32eb6533a27e259a1420765eb149f7d396dc69d8e873b07a33db869c734f08e",
+    "accepted_definition": "Rows admitted only after validation.",
+    "scope": "historical v0.1.0 campaign using local Aer plus sibling EICrecon; not validation of this migrated external-plugin source tree",
+    "progress_records": [
+      {"name": "shadow", "iteration_formula": "236 frozen slots * 3 profiles * 10 seeds", "planned": 7080, "accepted": 7080, "status": "COMPLETE"},
+      {"name": "hard", "iteration_formula": "10 events * 2 methods * 30 repeats", "planned": 600, "accepted": 600, "status": "COMPLETE"},
+      {"name": "end_to_end", "iteration_formula": "10 blocks * 4 methods", "planned": 40, "accepted": 40, "status": "COMPLETE"},
+      {"name": "active", "iteration_formula": "30 ordinals * 10 seeds", "planned": 300, "accepted": 56, "status": "PARTIAL", "failure_classification": "comparison_layer_type_error"}
+    ],
+    "final_aggregate": {"status": "ABSENT"},
+    "overall_status": "HISTORICAL_RELEASE_SNAPSHOT"
+  },
+  "intended_v0_2_0_evidence_assets": {
+    "release_status": "INTENDED_UPLOAD_ONLY; no release, tag, commit, push, or network action was performed",
+    "classification": "Historical local campaign aggregate evidence. Package-integrity checks do not certify native external-plugin configure, build, CTest, load, linkage, or factory visibility.",
+    "manifest": {
+      "name": "manifest.json",
+      "schema_version": "quantum-centauro-public-evidence-manifest/v1",
+      "sha256": "abbe0390868df1ae7e4576a256559fd3f706bef6096c05bdb328cc12e0eeee1f"
+    },
+    "checksums": {
+      "name": "SHA256SUMS",
+      "sha256": "295fbd69c477427c13e60a9d9a8d1434c0e975949f63738cca5e8c9b46e35ed7",
+      "covered_files": 11
+    },
+    "archive": {
+      "name": "quantum-centauro-local-evidence-v0.2.0.tar.gz",
+      "sha256": "1c55e188625a96513ab2a8776cb90ae242c6af5a603337c319a4d21668e715ef",
+      "members": 12,
+      "member_root": "quantum-centauro-local-evidence-v0.2.0"
+    },
+    "final_accepted_measurements": {
+      "shadow": 7080,
+      "active": 300,
+      "hard": 600,
+      "end_to_end": 40,
+      "total": 8020
+    },
+    "smoke_controls": {
+      "count": 10,
+      "classification": "separate controls; excluded from the 8020 accepted full measurements"
+    },
+    "source_evidence_hash_bindings": {
+      "plan": {
+        "sha256": "81cd79bd35ae13683952a40c1b2a3f724df7db8049b0be7c939191a1b1ca5a0d",
+        "declared_plan_sha256": "2b0dc673d51dddfdbf96aa7080d9b6aca958d19d795110856488187eaabf5902",
+        "declared_digest_matches_current_file": false,
+        "bindings": {
+          "active_resolver": "c603685c7cc9a5e739941de66455743b9c5151be275de19269ac1a2d989178c6",
+          "blind_contract": "ccea7d935efb18ac3ea85aee4921599129e9afd1903901c8e212beb84bbc6e6a",
+          "e2e_input": "46ca132f2dff26a1bfd82cedf867f3bc54b8a7b39c418f17525cf464e5d631c6",
+          "hard_manifest": "78c14fa81890f3ff94d6bc841864ab43408c10fb6250e22a73a9b4f211260325",
+          "shadow_admission": "209bb724d271687aa85a7201f5074342a9db37e1338fa7d0225e2da91a5e968f",
+          "worker": "097326b502bee0cb6f435954d65caf7ad48e9d22fac90bc2d0d74a9442cae4f4"
+        }
+      },
+      "ledgers": [
+        {"stage": "shadow", "sha256": "d72791a9f90d521631ca9f6a74411ff78ce170e6353c79c16bd9e1c2119260a3", "accepted_rows": 7080},
+        {"stage": "active", "sha256": "12e66bcfcaa637c058b9546adebade760bb550d1744d1f829b4716d5c5c562d3", "accepted_rows": 300},
+        {"stage": "hard", "sha256": "60e41872ba9c71f97ae730da4f3bb5b50df00604a9f78f2960af1f792b530819", "accepted_rows": 600},
+        {"stage": "end_to_end", "sha256": "4057101c55f082713417d551cb421ad069629ffb48e99a5321eb775f7f6c0c97", "accepted_rows": 40}
+      ]
+    },
+    "final_aggregate_hashes": {
+      "FINAL_MINIMAL_STATISTICAL_REPORT.md": "b3be8ce6fb96ccc84614249e371606d6c92f95d59d1bab3db7fca47428ddabc1",
+      "active_event_statistics.csv": "67e26073d8ee1975577cb4f46c96891e483a298a49fe1b7a54ae35b1678966c8",
+      "active_request_statistics.csv": "e15341269dfc75a7cda8c2504d803bc281c4975a4064d8f7eb43c26b7bbc389c",
+      "confidence_intervals.json": "40c8d51b42b11bcedb88c4560c630189506926a4fdf441e2f5b0de01466f358f",
+      "e2e_timing_runs.csv": "b0a6cdfcb2cf9e8e2614e8648b2ca6d3164ee477e71df1709876f76e6b1a647b",
+      "e2e_timing_summary.csv": "2e4d2cb94d271fdb1a8b3cf452f20d391454503026c62c5209e5d5ba9c1b2def",
+      "final_summary.json": "450058f4910c72d31c9417026fe60b6564aa246d2521b58e3328c0ae274aa604",
+      "hard_timing_runs.csv": "b4b0c23525dd7e56cf2b2d727ccb2d2f55fde12b13bbf2ffa6c85a236834bdd2",
+      "hard_timing_summary.csv": "f84e7df976a43cf68db23ff202d7661811206a437fadb289b2c5b6f6184e049f",
+      "shadow_statistics.csv": "fe86c8550e85f5c3756b347a3fb21bda884564ae430f84dc7674d5c653813dc5"
+    },
+    "scope_and_exclusions": {
+      "included": "The ten named aggregate outputs and integrity metadata only.",
+      "excluded": ["raw ledgers", "logs", "ROOT files", "traces", "worker or provider configuration", "protected environment data"]
+    },
+    "package_integrity_verification": "Passed pre/post packaging safety audit, JSON parsing, SHA-256 verification, archive member/path inspection, and forbidden-data scan. These checks establish packaging integrity only."
+  },
+  "supplied_final_campaign_facts": {
+    "classification": "historical supplied final facts; exact aggregate hashes are bound by intended v0.2.0 evidence assets",
+    "accepted_full_measurements": {
+      "shadow": 7080,
+      "hard": 600,
+      "end_to_end": 40,
+      "active": 300,
+      "total": 8020
+    },
+    "smoke_controls": 10,
+    "final_aggregate_hashes": "See intended_v0_2_0_evidence_assets.final_aggregate_hashes."
+  }
+}

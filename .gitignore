@@ -12,6 +12,8 @@ _build/
 cmake-build-*/
 CMakeFiles/
 CMakeCache.txt
+Testing/
+install/
 *.root
 *.jsonl
 *.log
