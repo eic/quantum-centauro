@@ -2,8 +2,6 @@
 set -euo pipefail
 umask 077
 
-repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
-
 prepare_run_directory() {
   local name=$1 value=${!1-} parent target
   [[ -n "$value" && "$value" == /* && "$value" != "/" && "$value" != *$'\n'* ]] || {
