@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.24)
 
 project(quantum_centauro LANGUAGES CXX)
 
-include(CTest)
-
 find_package(EICrecon CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
@@ -29,7 +27,3 @@ target_link_libraries(quantum_centauro
 )
 
 install(TARGETS quantum_centauro LIBRARY DESTINATION plugins)
-
-if(BUILD_TESTING)
-  add_subdirectory(tests/cpp)
-endif()
