@@ -19,7 +19,7 @@ This source-only experimental deliverable does not certify native configure, bui
 
 The 8,020 total is an administrative count of heterogeneous accepted campaign records, not 8,020 detector events, shots, or one homogeneous statistical sample. SHA-256 confirms a downloaded file's identity, not scientific validity or plugin certification.
 
-Detailed aggregate evidence is an immutable [v0.2.0 Release asset](https://github.com/eic/quantum-centauro/releases/tag/v0.2.0); historical PDFs and notebooks remain immutable [v0.1.0 Release assets](https://github.com/eic/quantum-centauro/releases/tag/v0.1.0), not canonical-tree files.
+Detailed aggregate evidence is published in the [v0.2.0 Release](https://github.com/eic/quantum-centauro/releases/tag/v0.2.0); historical PDFs and notebooks remain in the [v0.1.0 Release](https://github.com/eic/quantum-centauro/releases/tag/v0.1.0), not in the canonical source tree.
 
 ## Architecture and modes
 
@@ -82,4 +82,4 @@ PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=src python
 | `examples/input_files.txt` | Approved input-basename list |
 | `NOTICE`, `LICENSE`, `LICENSES/` | Provenance and GPL/LGPL license texts |
 
-Python and scripts are [GPL-3.0-only](LICENSE); plugin sources retain LGPL-3.0-or-later SPDX headers with the [LGPL text](LICENSES/LGPL-3.0.txt). See [Releases](https://github.com/eic/quantum-centauro/releases) for immutable historical deliverables.
+Python and scripts are [GPL-3.0-only](LICENSE); plugin sources retain LGPL-3.0-or-later SPDX headers with the [LGPL text](LICENSES/LGPL-3.0.txt). See [Releases](https://github.com/eic/quantum-centauro/releases) for versioned historical deliverables.
