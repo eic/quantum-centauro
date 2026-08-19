@@ -47,7 +47,10 @@ struct DirectCentauroJetReconstructionConfig {
   unsigned qiskitMaxCandidates = 128U;
   /// Optional JSONL iteration trace written by the C++ owner of clustering state.
   std::string quantumTracePath;
-  /// Abort event processing rather than applying a classical fallback after a failed local service reply.
+  /// Operational local-worker failures always retain the deterministic classical action.
+  /// Invalid reconstruction configuration still fails during initialization.
+  std::string quantumFallbackPolicy = "classical";
+  /// Retained for configuration compatibility; true is rejected during initialization.
   bool quantumFailClosed = false;
 };
 

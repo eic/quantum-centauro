@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.24)
 project(quantum_centauro LANGUAGES CXX)
 
 find_package(EICrecon CONFIG REQUIRED)
+find_package(JANA CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
 add_library(quantum_centauro SHARED
@@ -19,6 +20,12 @@ set_target_properties(quantum_centauro PROPERTIES
 target_include_directories(quantum_centauro
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/plugin/quantum_centauro/include
+)
+target_compile_definitions(quantum_centauro
+  PRIVATE
+    JANA_VERSION_MAJOR=${JANA_VERSION_MAJOR}
+    JANA_VERSION_MINOR=${JANA_VERSION_MINOR}
+    JANA_VERSION_PATCH=${JANA_VERSION_PATCH}
 )
 target_link_libraries(quantum_centauro
   PRIVATE

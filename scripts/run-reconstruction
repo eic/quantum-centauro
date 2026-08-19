@@ -16,6 +16,17 @@ fi
 
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 
+nevents=${EICRECON_NEVENTS-1}
+nskip=${EICRECON_NSKIP-0}
+[[ "$nevents" =~ ^[1-9][0-9]*$ && ${#nevents} -le 2 && 10#$nevents -le 10 ]] || {
+  printf 'EICRECON_NEVENTS must be a decimal integer from 1 through 10\n' >&2
+  exit 2
+}
+[[ "$nskip" == 0 || "$nskip" =~ ^[1-9][0-9]*$ && ${#nskip} -le 4 && 10#$nskip -le 9999 ]] || {
+  printf 'EICRECON_NSKIP must be a decimal integer from 0 through 9999\n' >&2
+  exit 2
+}
+
 prepare_run_directory() {
   local name=$1 value=${!1-} parent target
   [[ -n "$value" && "$value" == /* && "$value" != / && "$value" != *$'\n'* ]] || {
@@ -43,16 +54,8 @@ require_absolute_directory INPUT_DIR || { printf 'INPUT_DIR must be a non-root a
 : "${INPUT_BASENAME:?INPUT_BASENAME must be an exact examples/input_files.txt entry}"
 : "${EICRECON_BIN:?EICRECON_BIN must name the recipient EICrecon executable}"
 : "${EICRECON_TIMEOUT_MILLISECONDS:?EICRECON_TIMEOUT_MILLISECONDS is required}"
-quantum_fail_closed=true
-if [[ "$mode" == shadow ]]; then
-  quantum_fail_closed=${QUANTUM_FAIL_CLOSED:-true}
-fi
 [[ "$EICRECON_BIN" != -* && "$EICRECON_BIN" != *$'\n'* && "$INPUT_BASENAME" != */* && "$INPUT_BASENAME" != *$'\n'* && "$EICRECON_TIMEOUT_MILLISECONDS" =~ ^[1-9][0-9]*$ ]] || {
   printf 'unsafe or invalid runtime input\n' >&2
-  exit 2
-}
-[[ "$quantum_fail_closed" == true || "$quantum_fail_closed" == false ]] || {
-  printf 'QUANTUM_FAIL_CLOSED must be true or false\n' >&2
   exit 2
 }
 grep -Fqx -- "$INPUT_BASENAME" "$repo_root/examples/input_files.txt" || {
@@ -73,16 +76,18 @@ trace_path="$RUN_DIR/$mode.trace.jsonl"
 exec "$EICRECON_BIN" \
   -Pplugins=quantum_centauro \
   -Pnthreads=1 \
+  -Pjana:nevents="$nevents" \
+  -Pjana:nskip="$nskip" \
   -Pjana:parameter_strictness=2 \
-  -PReco:ReconstructedDirectCentauroJets:quantumMode="qiskit_$mode" \
-  -PReco:ReconstructedDirectCentauroJets:quantumSocketPath="$RUN_DIR/direct-centauro-worker.sock" \
-  -PReco:ReconstructedDirectCentauroJets:quantumTimeoutMilliseconds="$EICRECON_TIMEOUT_MILLISECONDS" \
-  -PReco:ReconstructedDirectCentauroJets:quantumShots=512 \
-  -PReco:ReconstructedDirectCentauroJets:quantumExponentA=3.0 \
-  -PReco:ReconstructedDirectCentauroJets:quantumSeed=314159 \
-  -PReco:ReconstructedDirectCentauroJets:qiskitMaxCandidates=128 \
-  -PReco:ReconstructedDirectCentauroJets:quantumTracePath="$trace_path" \
-  -PReco:ReconstructedDirectCentauroJets:quantumFailClosed="$quantum_fail_closed" \
+  -Pquantum_centauro:reconstructeddirectcentaurojets:quantumMode="qiskit_$mode" \
+  -Pquantum_centauro:reconstructeddirectcentaurojets:quantumSocketPath="$RUN_DIR/direct-centauro-worker.sock" \
+  -Pquantum_centauro:reconstructeddirectcentaurojets:quantumTimeoutMilliseconds="$EICRECON_TIMEOUT_MILLISECONDS" \
+  -Pquantum_centauro:reconstructeddirectcentaurojets:quantumShots=512 \
+  -Pquantum_centauro:reconstructeddirectcentaurojets:quantumExponentA=3.0 \
+  -Pquantum_centauro:reconstructeddirectcentaurojets:quantumSeed=314159 \
+  -Pquantum_centauro:reconstructeddirectcentaurojets:qiskitMaxCandidates=128 \
+  -Pquantum_centauro:reconstructeddirectcentaurojets:quantumTracePath="$trace_path" \
+  -Pquantum_centauro:reconstructeddirectcentaurojets:quantumFallbackPolicy=classical \
   -Ppodio:output_file="$output_path" \
   -Ppodio:output_collections=EventHeader,ReconstructedBreitFrameParticles,ReconstructedDirectCentauroJets \
   "$INPUT_DIR/$INPUT_BASENAME"

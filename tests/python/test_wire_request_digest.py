@@ -131,18 +131,33 @@ def test_local_payload_cap_accepts_128_candidates_without_aer():
     assert validate_payload_request(request) is request
 
 
-def test_shipped_cpp_fail_closed_default_and_response_guards_are_present():
+def test_shipped_cpp_fail_open_policy_and_trace_fields_are_present():
     root = __import__("pathlib").Path(__file__).parents[2]
     config_source = (root / "plugin/quantum_centauro/include/quantum_centauro/DirectCentauroJetReconstructionConfig.h").read_text()
     socket_source = (root / "plugin/quantum_centauro/include/quantum_centauro/DirectCentauroQuantumSocketClient.h").read_text()
 
+    reconstruction_source = (root / "plugin/quantum_centauro/src/DirectCentauroJetReconstruction.cc").read_text()
+    assert 'std::string quantumFallbackPolicy = "classical";' in config_source
     assert "bool quantumFailClosed = false;" in config_source
+    assert 'quantumFallbackPolicy must be classical' in reconstruction_source
+    assert 'quantumFailClosed is unsupported' in reconstruction_source
+    assert '\\"final_source\\"' in reconstruction_source
+    assert '\\"decision_reason_code\\"' in reconstruction_source
+    assert 'fallback ? fallbackReason.c_str()' in reconstruction_source
+    assert 'trace << "null";' in reconstruction_source
+    assert 'else if (candidates.size() > this->m_cfg.qiskitMaxCandidates) {\n        fallback = true;' in reconstruction_source
+    assert 'if (!reply.valid)' in reconstruction_source
+    assert 'fallbackReason = reply.reason;' in reconstruction_source
+    assert 'quantumFailClosed is unsupported; use quantumFallbackPolicy=classical.' in reconstruction_source
     wrapper = (root / "scripts/run-reconstruction").read_text()
-    assert "quantum_fail_closed=${QUANTUM_FAIL_CLOSED:-true}" in wrapper
-    assert 'quantumFailClosed="$quantum_fail_closed"' in wrapper
+    assert wrapper.count("quantum_centauro:reconstructeddirectcentaurojets:") == 9
+    assert "Reco:ReconstructedDirectCentauroJets:" not in wrapper
+    assert 'quantumFallbackPolicy=classical' in wrapper
     assert "-Pplugins=quantum_centauro" in wrapper
     assert "reply.probabilities.back() < 0.0" in socket_source
     assert "!std::isfinite(reply.amplitudes.back())" in socket_source
     assert 'worker.contains("max_candidates")' in socket_source
     assert "worker.at(\"max_candidates\").get<std::size_t>() < candidates.size()" in socket_source
     assert "reply.workerResponseAssemblyMilliseconds < 0.0" in socket_source
+    assert '!= "direct_centauro_aer"' in socket_source
+    assert 'workerIdentity != "direct_centauro_aer_" + std::to_string(workerPid)' in socket_source

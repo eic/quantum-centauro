@@ -81,6 +81,14 @@ template <typename InputT> void DirectCentauroJetReconstruction<InputT>::init() 
   if (this->m_cfg.quantumMode != "classical" && this->m_cfg.quantumSocketPath.empty()) {
     throw std::runtime_error("DirectCentauroJetReconstruction quantumSocketPath is required outside classical mode.");
   }
+  if (this->m_cfg.quantumFallbackPolicy != "classical") {
+    throw std::runtime_error(
+        "DirectCentauroJetReconstruction quantumFallbackPolicy must be classical.");
+  }
+  if (this->m_cfg.quantumFailClosed) {
+    throw std::runtime_error(
+        "DirectCentauroJetReconstruction quantumFailClosed is unsupported; use quantumFallbackPolicy=classical.");
+  }
   if (this->m_cfg.quantumTimeoutMilliseconds == 0U) {
     throw std::runtime_error("DirectCentauroJetReconstruction quantumTimeoutMilliseconds must be positive.");
   }
@@ -298,10 +306,6 @@ void DirectCentauroJetReconstruction<InputT>::process(
         zeroDistanceBypass = true;
         ++zeroDistanceBypassCount;
       } else if (candidates.size() > this->m_cfg.qiskitMaxCandidates) {
-        if (this->m_cfg.quantumFailClosed) {
-          throw std::runtime_error(
-              "DirectCentauroJetReconstruction quantum fail-closed: local_oversize_guard");
-        }
         fallback = true;
         fallbackReason = "local_oversize_guard";
         ++oversizeCount;
@@ -340,9 +344,6 @@ void DirectCentauroJetReconstruction<InputT>::process(
         workerRequestParsingValidationMilliseconds = reply.workerRequestParsingValidationMilliseconds;
         workerResponseAssemblyMilliseconds = reply.workerResponseAssemblyMilliseconds;
         if (!reply.valid) {
-          if (this->m_cfg.quantumFailClosed) {
-            throw std::runtime_error("DirectCentauroJetReconstruction quantum fail-closed: " + reply.reason);
-          }
           fallback = true;
           fallbackReason = reply.reason;
           timeout = reply.timeout;
@@ -425,7 +426,15 @@ void DirectCentauroJetReconstruction<InputT>::process(
       } else {
         trace << "null";
       }
-       trace << ",\"applied_index\":" << selection.candidateIndex
+      const char* finalSource = qiskitApplied ? "quantum" : "classical";
+      const char* decisionReasonCode = qiskitApplied ? "quantum_response_valid"
+          : fallback ? fallbackReason.c_str()
+          : zeroDistanceBypass ? "zero_distance_bypass"
+          : this->m_cfg.quantumMode == "qiskit_shadow" ? "shadow_diagnostic"
+          : "classical_mode";
+      trace << ",\"applied_index\":" << selection.candidateIndex
+            << ",\"final_source\":\"" << finalSource << "\""
+             << ",\"decision_reason_code\":\"" << decisionReasonCode << "\""
               << ",\"qiskit_request_sent\":" << (qiskitRequestSent ? "true" : "false")
               << ",\"qiskit_response_valid\":" << (qiskitResponseValid ? "true" : "false")
               << ",\"qiskit_applied\":" << (qiskitApplied ? "true" : "false")
@@ -459,19 +468,23 @@ void DirectCentauroJetReconstruction<InputT>::process(
         } else {
           trace << nlohmann::json(workerIdentity).dump();
         }
-       trace << ",\"fallback\":" << (fallback ? "true" : "false")
+      trace << ",\"fallback\":" << (fallback ? "true" : "false")
             << ",\"fallback_reason\":";
       if (fallback) {
         trace << "\"" << fallbackReason << "\"";
       } else {
         trace << "null";
       }
-      trace << ",\"action\":{\"kind\":\""
-            << (action.kind == DirectCentauroCandidateKind::Pair ? "pair" : "beam")
-            << "\",\"i\":" << action.i << ",\"j\":" << action.j
-            << ",\"left_leaves\":" << leafSet(activeJets[action.i].constituentIndices)
-            << ",\"right_leaves\":" << leafSet(activeJets[action.j].constituentIndices)
-            << "}}\n";
+       trace << ",\"action\":{\"kind\":\""
+             << (action.kind == DirectCentauroCandidateKind::Pair ? "pair" : "beam")
+             << "\",\"i\":" << action.i << ",\"j\":" << action.j
+             << ",\"left_leaves\":" << leafSet(activeJets[action.i].constituentIndices)
+             << ",\"right_leaves\":" << leafSet(activeJets[action.j].constituentIndices)
+             << "}}\n";
+      trace.flush();
+      if (!trace) {
+        throw std::runtime_error("DirectCentauroJetReconstruction could not write quantumTracePath.");
+      }
     }
 
     const auto& candidate = selection.candidate;
@@ -577,6 +590,10 @@ void DirectCentauroJetReconstruction<InputT>::process(
     }
     trace << "],\"jet_count\":" << outputIndex
           << ",\"first_canonical_structure_divergence_iteration\":null,\"max_p4_delta_vs_classical\":null}\n";
+    trace.flush();
+    if (!trace) {
+      throw std::runtime_error("DirectCentauroJetReconstruction could not write quantumTracePath.");
+    }
   }
 }
 

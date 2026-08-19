@@ -225,8 +225,8 @@ public:
     const auto newline = text.find('\n');
     reply.frameComplete = newline != std::string::npos && newline + 1 == text.size();
     if (text.size() > 64U * 1024U || newline == std::string::npos || newline + 1 != text.size()) {
-      return finish("malformed_response");
-    }
+        return finish("malformed_response");
+      }
     text.pop_back();
     if (text == "ERR") {
       reply.workerStatus = "err";
@@ -313,19 +313,22 @@ public:
           !std::includes(workerAllowed.begin(), workerAllowed.end(), workerActual.begin(), workerActual.end())) {
         return finish("malformed_response");
       }
-       if (worker.at("pid").get<unsigned long>() == 0UL || worker.at("identity").get<std::string>().empty() ||
-           worker.at("request_sequence").get<unsigned long>() == 0UL) return finish("malformed_response");
-       if ((worker.contains("shots") && (!worker.at("shots").is_number_unsigned() || worker.at("shots").get<unsigned>() != shots)) ||
-           (worker.contains("exponent") && (!worker.at("exponent").is_number() ||
-                                            !std::isfinite(worker.at("exponent").get<double>()) ||
-                                            worker.at("exponent").get<double>() != exponent)) ||
-           (worker.contains("seed") && (!worker.at("seed").is_number_unsigned() || worker.at("seed").get<unsigned>() != seed)) ||
-           (worker.contains("max_candidates") && (!worker.at("max_candidates").is_number_unsigned() ||
-                                                   worker.at("max_candidates").get<std::size_t>() < candidates.size()))) {
+      const auto workerPid = worker.at("pid").get<unsigned long>();
+      const auto workerIdentity = worker.at("identity").get<std::string>();
+      if (worker.at("implementation").get<std::string>() != "direct_centauro_aer" || workerPid == 0UL ||
+          workerIdentity != "direct_centauro_aer_" + std::to_string(workerPid) ||
+          worker.at("request_sequence").get<unsigned long>() == 0UL) return finish("malformed_response");
+      if ((worker.contains("shots") && (!worker.at("shots").is_number_unsigned() || worker.at("shots").get<unsigned>() != shots)) ||
+          (worker.contains("exponent") && (!worker.at("exponent").is_number() ||
+                                           !std::isfinite(worker.at("exponent").get<double>()) ||
+                                           worker.at("exponent").get<double>() != exponent)) ||
+          (worker.contains("seed") && (!worker.at("seed").is_number_unsigned() || worker.at("seed").get<unsigned>() != seed)) ||
+          (worker.contains("max_candidates") && (!worker.at("max_candidates").is_number_unsigned() ||
+                                                  worker.at("max_candidates").get<std::size_t>() < candidates.size()))) {
          return finish("malformed_response");
        }
-      reply.workerPid = worker.at("pid").get<unsigned long>();
-      reply.workerIdentity = worker.at("identity").get<std::string>();
+      reply.workerPid = workerPid;
+      reply.workerIdentity = workerIdentity;
       reply.requestSequence = worker.at("request_sequence").get<unsigned long>();
       if (counts.size() != candidates.size() || probabilities.size() != candidates.size() || amplitudes.size() < candidates.size()) {
         return finish("malformed_response");

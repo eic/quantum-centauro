@@ -87,6 +87,8 @@ private:
       this, "qiskitMaxCandidates", FactoryT::config().qiskitMaxCandidates};
   typename FactoryT::template ParameterRef<std::string> m_quantumTracePath{
       this, "quantumTracePath", FactoryT::config().quantumTracePath};
+  typename FactoryT::template ParameterRef<std::string> m_quantumFallbackPolicy{
+      this, "quantumFallbackPolicy", FactoryT::config().quantumFallbackPolicy};
   typename FactoryT::template ParameterRef<bool> m_quantumFailClosed{
       this, "quantumFailClosed", FactoryT::config().quantumFailClosed};
 
