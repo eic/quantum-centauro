@@ -14,9 +14,11 @@ import os
 import signal
 import socket
 import json
+import threading
 import time
 from pathlib import Path
-from typing import Any
+from types import FrameType
+from typing import Any, Callable, Protocol
 
 from eic_quantum.contracts.blind_selector import ContractValidationError, MAX_JSONL_LINE_BYTES, execute_blind_request, validate_request
 from eic_quantum.payloads.quantum_min_search import (
@@ -50,6 +52,15 @@ class WorkerStageError(ValueError):
         super().__init__(stage)
         self.stage = stage
         self.cause = cause
+
+
+class StopEvent(Protocol):
+    """The minimal signal-safe stop interface accepted by ``serve``."""
+
+    def is_set(self) -> bool: ...
+
+
+SignalHandler = Callable[[int, FrameType | None], None] | int | None
 
 
 class DirectCentauroQuantumWorker:
@@ -114,6 +125,7 @@ class DirectCentauroQuantumWorker:
             if self._sampler is None:
                 _, _, sampler_type = _load_qiskit()
                 self._sampler = sampler_type(default_shots=self._shots, seed=self._seed)
+            assert self._sampler is not None
             sampled_circuit = circuit.decompose(reps=10)
             result = self._sampler.run([sampled_circuit], shots=self._shots).result()
         except (ValueError, OverflowError, TypeError) as error:
@@ -234,7 +246,8 @@ def sanitize_worker_error(error: Exception, stage: str = "worker_handler") -> di
     """Return bounded lifecycle diagnostics without leaking request/environment data."""
     codes = {ValueError: "selector_value_error", OverflowError: "selector_overflow_error", TypeError: "selector_type_error"}
     if isinstance(error, WorkerStageError):
-        error, stage = error.cause, error.stage
+        stage = error.stage
+        error = error.cause
     return {
         "exception_class": type(error).__name__,
         "stage": stage,
@@ -273,7 +286,23 @@ def administrative_response(worker: DirectCentauroQuantumWorker, request: dict[s
             "worker_identity": f"direct_centauro_aer_{os.getpid()}", "settings": worker.lifecycle_settings()}
 
 
-def serve(socket_path: Path, worker: DirectCentauroQuantumWorker, lifecycle_path: Path | None = None, stop_event: object | None = None) -> None:
+def _send_response(connection: socket.socket, response: str) -> None:
+    """Write one already-bounded protocol response to a connected client."""
+    connection.sendall(response.encode("utf-8"))
+
+
+def _install_stop_handlers(stop_event: threading.Event) -> tuple[SignalHandler, SignalHandler]:
+    """Turn terminal shutdown signals into a cooperative service stop."""
+    def request_stop(_signum: int, _frame: FrameType | None) -> None:
+        stop_event.set()
+
+    return (
+        signal.signal(signal.SIGINT, request_stop),
+        signal.signal(signal.SIGTERM, request_stop),
+    )
+
+
+def serve(socket_path: Path, worker: DirectCentauroQuantumWorker, lifecycle_path: Path | None = None, stop_event: StopEvent | None = None) -> None:
     if socket_path.exists() or socket_path.is_symlink():
         raise RuntimeError(f"refusing to replace existing socket: {socket_path}")
     if lifecycle_path is not None and (lifecycle_path.exists() or lifecycle_path.is_symlink()):
@@ -290,6 +319,10 @@ def serve(socket_path: Path, worker: DirectCentauroQuantumWorker, lifecycle_path
         server.settimeout(0.1)
         if lifecycle_path is not None:
             lifecycle_path.write_text(json.dumps({"pid": os.getpid(), "worker_identity": f"direct_centauro_aer_{os.getpid()}", "state": "started", "settings": worker.lifecycle_settings()}) + "\n", encoding="utf-8")
+        print(
+            f"Worker ready at {socket_path}. Keep this terminal open; press Ctrl-C after reconstruction finishes.",
+            flush=True,
+        )
         while True:
             if stop_event is not None and stop_event.is_set():
                 break
@@ -300,6 +333,9 @@ def serve(socket_path: Path, worker: DirectCentauroQuantumWorker, lifecycle_path
             with connection:
                 framed_line = connection.makefile("rb").readline(MAX_JSONL_LINE_BYTES + 1)
                 administrative = False
+                selector_succeeded = False
+                activity_event: int | None = None
+                activity_iteration: int | None = None
                 stage = "request_validation"
                 try:
                     if not framed_line.endswith(b"\n") or len(framed_line) > MAX_JSONL_LINE_BYTES:
@@ -314,12 +350,15 @@ def serve(socket_path: Path, worker: DirectCentauroQuantumWorker, lifecycle_path
                                                   separators=(",", ":"), allow_nan=False) + "\n"
                         else:
                             last_request = validate_request(decoded)
+                            activity_event = last_request["event"]
+                            activity_iteration = last_request["iteration"]
                             last_request_sha256 = hashlib.sha256(payload).hexdigest()
                             stage = "worker_handler"
                             response = json.dumps(attach_worker_metadata(process_blind_request(worker, payload,
-                                                                              wire_request_sha256=last_request_sha256),
-                                                                              pid=os.getpid(), request_sequence=requests + 1), sort_keys=True,
-                                                  separators=(",", ":"), allow_nan=False) + "\n"
+                                                                               wire_request_sha256=last_request_sha256),
+                                                                               pid=os.getpid(), request_sequence=requests + 1), sort_keys=True,
+                                                   separators=(",", ":"), allow_nan=False) + "\n"
+                            selector_succeeded = True
                     else:
                         stage = "worker_handler"
                         version, distances = parse_request(line)
@@ -331,21 +370,28 @@ def serve(socket_path: Path, worker: DirectCentauroQuantumWorker, lifecycle_path
                                          f"state_preparation_ms={selected['state_preparation_ms']:.9f} sampling_ms={selected['sampling_ms']:.9f} "
                                          f"qubits={selected['qubits']} shots={worker._shots} exponent={worker._exponent_a:.9f} "
                                          f"zero_distance_bypass={int(selected['zero_distance_bypass'])}\n")
+                        selector_succeeded = True
                 except (ValueError, OverflowError, TypeError) as error:
                     last_error = sanitize_worker_error(error, stage)
                     response = "ERR\n"
                 try:
-                    connection.sendall(response.encode("utf-8"))
-                except BrokenPipeError:
+                    _send_response(connection, response)
+                except (BrokenPipeError, ConnectionResetError):
                     disconnects += 1
-                    break
+                    print("Client disconnected while receiving a response; worker remains available.", flush=True)
+                    continue
                 if not administrative:
                     requests += 1
+                    if selector_succeeded:
+                        activity = f"Processed selector request #{requests}"
+                        if activity_event is not None and activity_iteration is not None:
+                            activity += f" (event {activity_event}, iteration {activity_iteration})"
+                        print(activity, flush=True)
     finally:
         server.close()
         socket_path.unlink(missing_ok=True)
         if lifecycle_path is not None:
-            lifecycle = {"pid": os.getpid(), "worker_identity": f"direct_centauro_aer_{os.getpid()}", "state": "client_disconnected" if disconnects else "stopped", "requests_served": requests, "client_disconnects": disconnects, "settings": worker.lifecycle_settings()}
+            lifecycle = {"pid": os.getpid(), "worker_identity": f"direct_centauro_aer_{os.getpid()}", "state": "stopped", "requests_served": requests, "client_disconnects": disconnects, "settings": worker.lifecycle_settings()}
             if last_error is not None:
                 lifecycle["last_error"] = last_error
             if last_request is not None:
@@ -365,8 +411,14 @@ def main() -> int:
     arguments = parser.parse_args()
     arguments.socket.parent.mkdir(parents=True, exist_ok=True)
     worker = DirectCentauroQuantumWorker(arguments.shots, arguments.exponent, arguments.seed, arguments.max_candidates)
-    signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(SystemExit()))
-    serve(arguments.socket, worker, arguments.lifecycle)
+    stop_event = threading.Event()
+    previous_sigint, previous_sigterm = _install_stop_handlers(stop_event)
+    try:
+        serve(arguments.socket, worker, arguments.lifecycle, stop_event)
+    finally:
+        signal.signal(signal.SIGINT, previous_sigint)
+        signal.signal(signal.SIGTERM, previous_sigterm)
+    print("Worker stopped cleanly.", flush=True)
     return 0
 
 

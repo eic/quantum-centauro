@@ -135,9 +135,9 @@ def inverse_power_probabilities(distances: list[float], exponent_a: float) -> li
 def _load_qiskit() -> tuple[Any, Any, Any]:
     """Load Qiskit V2 sampling dependencies or raise a clear local error."""
     try:
-        from qiskit import QuantumCircuit
-        from qiskit.circuit.library import StatePreparation
-        from qiskit_aer.primitives import SamplerV2
+        from qiskit import QuantumCircuit  # type: ignore[import-not-found]
+        from qiskit.circuit.library import StatePreparation  # type: ignore[import-not-found]
+        from qiskit_aer.primitives import SamplerV2  # type: ignore[import-not-found]
     except ImportError as exc:
         raise QiskitLocalDependencyError("paper sampler requires local 'qiskit' and 'qiskit-aer' packages.") from exc
     return QuantumCircuit, StatePreparation, SamplerV2
@@ -279,7 +279,7 @@ def paper_inverse_power_amplitude_sampling(request: dict[str, Any]) -> dict[str,
     metadata = request["metadata"]
     exponent_a = _require_exponent_a(metadata)
     simulator_seed = _require_metadata_seed(metadata, "simulator_seed", DEFAULT_SIMULATOR_SEED)
-    transpiler_seed = _require_metadata_seed(metadata, "transpiler_seed", DEFAULT_TRANSPILER_SEED)
+    _require_metadata_seed(metadata, "transpiler_seed", DEFAULT_TRANSPILER_SEED)
     distances = [float(candidate["distance"]) for candidate in candidates]
     zero_index = next((index for index, distance in enumerate(distances) if distance == 0.0), None)
     base = {"request_id": request["request_id"], "status": "ok", "method": "paper_inverse_power_amplitude_sampling", "provider": "local", "shots": request["shots"], "exponent_a": exponent_a, "runtime": None, "exact_quantum_minimum": False, "quantum_speedup_claimed": False, "hardware_submission": False}
