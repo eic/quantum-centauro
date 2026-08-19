@@ -1,9 +1,14 @@
 .env*
 .venv/
+.venv-eic/
 venv/
 env/
 __pycache__/
 *.py[cod]
+*.egg-info/
+/calibrations/
+/fieldmaps/
+/gdml/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
