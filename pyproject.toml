@@ -20,6 +20,9 @@ dependencies = [
 
 [project.scripts]
 direct-centauro-quantum-worker = "eic_quantum.services.direct_centauro_quantum_worker:main"
+qc-run = "eic_quantum.cli:run_main"
+qc-worker = "eic_quantum.cli:worker_main"
+qc-reconstruct = "eic_quantum.cli:reconstruct_main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
