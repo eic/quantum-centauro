@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+
+usage() {
+  printf 'usage: %s --run-dir ABSOLUTE_PATH --input-dir ABSOLUTE_PATH --input-basename NAME [--event-index INDEX] [--eicrecon-bin PATH] [--python-bin PATH]\n' "${0##*/}" >&2
+  exit 2
+}
+
+run_dir= input_dir= input_basename= event_index=0
+repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+eicrecon_bin=${EICRECON_BIN:-"$repo_root/scripts/eicrecon-container"}
+python_bin=${PYTHON_BIN:-python3}
+require_option_value() {
+  (($# >= 2)) && [[ $2 != --* ]] || usage
+}
+while (($#)); do
+  case $1 in
+    --run-dir) require_option_value "$@"; run_dir=$2; shift 2 ;;
+    --input-dir) require_option_value "$@"; input_dir=$2; shift 2 ;;
+    --input-basename) require_option_value "$@"; input_basename=$2; shift 2 ;;
+    --event-index) require_option_value "$@"; event_index=$2; shift 2 ;;
+    --eicrecon-bin) require_option_value "$@"; eicrecon_bin=$2; shift 2 ;;
+    --python-bin) require_option_value "$@"; python_bin=$2; shift 2 ;;
+    *) usage ;;
+  esac
+done
+
+[[ -n "$run_dir" && "$run_dir" == /* && "$run_dir" != / && "$run_dir" != *$'\n'* ]] || usage
+[[ -n "$input_dir" && "$input_dir" == /* && "$input_dir" != / && "$input_dir" != *$'\n'* ]] || usage
+[[ -n "$input_basename" && "$input_basename" != */* && "$input_basename" != *$'\n'* ]] || usage
+[[ "$eicrecon_bin" != -* && "$eicrecon_bin" != *$'\n'* && "$python_bin" != -* && "$python_bin" != *$'\n'* ]] || usage
+[[ ! -e "$run_dir" && ! -L "$run_dir" ]] || { printf 'RUN_DIR must be a new, unused directory\n' >&2; exit 2; }
+nevents=${EICRECON_NEVENTS-1}
+[[ "$nevents" =~ ^[1-9][0-9]*$ && ${#nevents} -le 2 && 10#$nevents -le 10 ]] || {
+  printf 'EICRECON_NEVENTS must be a decimal integer from 1 through 10\n' >&2
+  exit 2
+}
+[[ "$event_index" == 0 || "$event_index" =~ ^[1-9][0-9]*$ && ${#event_index} -le 4 && 10#$event_index -le 9999 ]] || {
+  printf '%s\n' '--event-index must be a decimal integer from 0 through 9999' >&2
+  exit 2
+}
+socket_path="$run_dir/direct-centauro-worker.sock"
+socket_path_bytes=$(printf %s "$socket_path" | LC_ALL=C wc -c)
+(( socket_path_bytes < 108 )) || {
+  printf 'RUN_DIR is too long for Linux AF_UNIX socket path; choose a shorter absolute path\n' >&2
+  exit 2
+}
+
+worker_script=${WORKER_SCRIPT:-"$repo_root/scripts/run-worker"}
+reconstruction_script=${RECONSTRUCTION_SCRIPT:-"$repo_root/scripts/run-reconstruction"}
+ready_timeout_seconds=${WORKER_READY_TIMEOUT_SECONDS:-10}
+[[ "$worker_script" == /* && "$worker_script" != *$'\n'* && -f "$worker_script" && ! -L "$worker_script" ]] || {
+  printf 'WORKER_SCRIPT must be an absolute regular file\n' >&2
+  exit 2
+}
+[[ "$reconstruction_script" == /* && "$reconstruction_script" != *$'\n'* && -f "$reconstruction_script" && ! -L "$reconstruction_script" ]] || {
+  printf 'RECONSTRUCTION_SCRIPT must be an absolute regular file\n' >&2
+  exit 2
+}
+[[ "$ready_timeout_seconds" =~ ^[1-9][0-9]*$ ]] || { printf 'WORKER_READY_TIMEOUT_SECONDS must be a positive integer\n' >&2; exit 2; }
+
+# Every wrapper, including custom test wrappers, must support this no-workload gate.
+"$eicrecon_bin" --preflight
+
+mkdir -p -- "${run_dir%/*}"
+mkdir -- "$run_dir"
+worker_pid=
+cleanup() {
+  local pid=$worker_pid
+  worker_pid=
+  if [[ -n "$pid" ]]; then
+    if kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+    fi
+    wait "$pid" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT
+trap 'cleanup; exit 143' TERM
+
+RUN_DIR="$run_dir" PYTHON_BIN="$python_bin" PYTHONPATH="$repo_root/src${PYTHONPATH:+:$PYTHONPATH}" "$worker_script" >"$run_dir/worker.log" 2>&1 &
+worker_pid=$!
+worker_is_alive() {
+  kill -0 "$worker_pid" 2>/dev/null
+}
+require_worker_alive() {
+  worker_is_alive && worker_ready && return
+  printf 'local worker exited; refusing to continue reconstruction; see %s\n' "$run_dir/worker.log" >&2
+  exit 1
+}
+lifecycle_path="$run_dir/direct-centauro-worker.lifecycle.json"
+ready_nonce="local-aer-${worker_pid}-${RANDOM}-${RANDOM}"
+worker_ready() {
+  "$python_bin" - "$socket_path" "$lifecycle_path" "$worker_pid" "$ready_nonce" <<'PY'
+import json
+import socket
+import sys
+from pathlib import Path
+
+socket_path, lifecycle_path, expected_pid, nonce = sys.argv[1:]
+try:
+    lifecycle = Path(lifecycle_path)
+    if lifecycle.is_symlink() or not lifecycle.is_file():
+        raise ValueError
+    state = json.loads(lifecycle.read_text(encoding="utf-8"))
+    if state != {
+        "pid": int(expected_pid),
+        "worker_identity": f"direct_centauro_aer_{expected_pid}",
+        "state": "started",
+        "settings": state.get("settings"),
+    }:
+        raise ValueError
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+        connection.settimeout(0.2)
+        connection.connect(socket_path)
+        request = {"schema_version": "active-holdout-admin/v1", "operation": "ready", "nonce": nonce}
+        connection.sendall(json.dumps(request, separators=(",", ":")).encode("utf-8") + b"\n")
+        response = json.loads(connection.makefile("rb").readline(65537).decode("utf-8"))
+    if response.get("schema_version") != "active-holdout-admin-receipt/v1" or response.get("operation") != "ready" or response.get("result") != "ok" or response.get("nonce") != nonce or response.get("pid") != int(expected_pid) or response.get("worker_identity") != f"direct_centauro_aer_{expected_pid}":
+        raise ValueError
+except (OSError, ValueError, json.JSONDecodeError, UnicodeDecodeError):
+    raise SystemExit(1)
+PY
+}
+for ((elapsed = 0; elapsed < ready_timeout_seconds * 10; ++elapsed)); do
+  worker_is_alive || { printf 'local worker exited before socket readiness; see %s\n' "$run_dir/worker.log" >&2; exit 1; }
+  [[ -S "$socket_path" ]] && worker_ready && break
+  sleep 0.1
+done
+worker_ready || { printf 'local worker failed readiness ownership check within %ss; see %s\n' "$ready_timeout_seconds" "$run_dir/worker.log" >&2; exit 1; }
+
+for mode in shadow active; do
+  require_worker_alive
+  RUN_DIR="$run_dir" INPUT_DIR="$input_dir" INPUT_BASENAME="$input_basename" \
+    EICRECON_BIN="$eicrecon_bin" EICRECON_NEVENTS="$nevents" EICRECON_NSKIP="$event_index" EICRECON_TIMEOUT_MILLISECONDS="${EICRECON_TIMEOUT_MILLISECONDS:-1000}" \
+    "$reconstruction_script" "$mode" >"$run_dir/$mode.reconstruction.log" 2>&1
+  require_worker_alive
+done

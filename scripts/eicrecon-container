@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+
+require_safe_absolute_syntax() {
+  local name=$1 value=${!1-}
+  [[ -n "$value" && "$value" == /* && "$value" != / && "$value" != *[$'\001'-$'\037'$'\177']* ]] || {
+    printf '%s must be a non-root absolute path without control characters\n' "$name" >&2
+    exit 2
+  }
+  [[ "$value" =~ ^/[-A-Za-z0-9._/+]+$ ]] || {
+    printf '%s contains characters outside the safe Singularity bind allowlist\n' "$name" >&2
+    exit 2
+  }
+}
+
+require_safe_absolute() {
+  local name=$1 value=${!1-}
+  require_safe_absolute_syntax "$name"
+  [[ ! -L "$value" ]] || { printf '%s must not be a symlink\n' "$name" >&2; exit 2; }
+}
+
+preflight_only=0
+if [[ ${1-} == --preflight ]]; then
+  preflight_only=1
+  shift
+  (($# == 0)) || { printf 'usage: %s [--preflight] | [EICrecon arguments...]\n' "${0##*/}" >&2; exit 2; }
+fi
+
+require_safe_absolute EIC_CONTAINER_SIF
+require_safe_absolute EICRECON_PREFIX
+require_safe_absolute QUANTUM_CENTAURO_PREFIX
+require_safe_absolute EIC_CONTAINER_BIND_ROOT
+
+requested_singularity_bin=${SINGULARITY_BIN:-/usr/bin/singularity}
+SINGULARITY_BIN=$requested_singularity_bin
+require_safe_absolute_syntax SINGULARITY_BIN
+if ! singularity_bin=$(readlink -f -- "$requested_singularity_bin"); then
+  printf 'SINGULARITY_BIN must resolve to an executable regular file\n' >&2
+  exit 2
+fi
+[[ -n "$singularity_bin" ]] || {
+  printf 'SINGULARITY_BIN must resolve to an executable regular file\n' >&2
+  exit 2
+}
+SINGULARITY_BIN=$singularity_bin
+require_safe_absolute_syntax SINGULARITY_BIN
+[[ -f "$singularity_bin" && -x "$singularity_bin" ]] || {
+  printf 'SINGULARITY_BIN must resolve to an executable regular file\n' >&2
+  exit 2
+}
+[[ -f "$EIC_CONTAINER_SIF" ]] || { printf 'EIC_CONTAINER_SIF must be a regular file\n' >&2; exit 2; }
+[[ -d "$EICRECON_PREFIX" && -d "$QUANTUM_CENTAURO_PREFIX" && -d "$EIC_CONTAINER_BIND_ROOT" ]] || {
+  printf 'EICRECON_PREFIX, QUANTUM_CENTAURO_PREFIX, and EIC_CONTAINER_BIND_ROOT must be directories\n' >&2
+  exit 2
+}
+[[ -f "$EICRECON_PREFIX/bin/eicrecon-this.sh" && ! -L "$EICRECON_PREFIX/bin/eicrecon-this.sh" && -f "$EICRECON_PREFIX/bin/eicrecon" && -x "$EICRECON_PREFIX/bin/eicrecon" && ! -L "$EICRECON_PREFIX/bin/eicrecon" ]] || {
+  printf 'EICRECON_PREFIX must contain bin/eicrecon-this.sh and executable bin/eicrecon\n' >&2
+  exit 2
+}
+[[ -f "$QUANTUM_CENTAURO_PREFIX/plugins/quantum_centauro.so" && ! -L "$QUANTUM_CENTAURO_PREFIX/plugins/quantum_centauro.so" ]] || {
+  printf 'QUANTUM_CENTAURO_PREFIX must contain plugins/quantum_centauro.so\n' >&2
+  exit 2
+}
+
+bind_root=$(readlink -f -- "$EIC_CONTAINER_BIND_ROOT")
+canonical_bind_root=$bind_root
+require_safe_absolute_syntax canonical_bind_root
+for path in "$EIC_CONTAINER_SIF" "$EICRECON_PREFIX" "$QUANTUM_CENTAURO_PREFIX"; do
+  canonical_path=$(readlink -f -- "$path")
+  [[ "$canonical_path" == "$bind_root" || "$canonical_path" == "$bind_root/"* ]] || {
+    printf '%s escapes EIC_CONTAINER_BIND_ROOT\n' "$path" >&2
+    exit 2
+  }
+done
+
+# All absolute paths passed to EICrecon must be visible through the single bind.
+for argument in "$@"; do
+  candidate=${argument#*=}
+  [[ "$candidate" == /* ]] || continue
+  [[ "$candidate" != *[$'\001'-$'\037'$'\177']* ]] || { printf 'EICrecon argument has control characters\n' >&2; exit 2; }
+  canonical_candidate=$(readlink -m -- "$candidate")
+  [[ "$canonical_candidate" == "$bind_root" || "$canonical_candidate" == "$bind_root/"* ]] || {
+    printf 'EICrecon argument escapes EIC_CONTAINER_BIND_ROOT\n' >&2
+    exit 2
+  }
+done
+
+detector_config=${EIC_DETECTOR_CONFIG:-epic_craterlake}
+[[ "$detector_config" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]*$ ]] || {
+  printf 'EIC_DETECTOR_CONFIG must be a safe basename token\n' >&2
+  exit 2
+}
+
+inner_command='detector_config=$1; preflight_only=$2; eicrecon_prefix=$3; plugin_prefix=$4; shift 4; set -o pipefail; workdir=$(mktemp -d /tmp/eicrecon-container.XXXXXXXXXX) || exit $?; cleanup() { status=$?; trap - EXIT HUP INT TERM; cd / || :; rm -rf -- "$workdir" || :; exit "$status"; }; trap cleanup EXIT; child_pid=; forward_signal() { signal=$1; if [[ -n "$child_pid" ]]; then kill -"$signal" "$child_pid" 2>/dev/null || :; else trap - "$signal"; kill -"$signal" "$$"; fi; }; trap "forward_signal HUP" HUP; trap "forward_signal INT" INT; trap "forward_signal TERM" TERM; cd "$workdir" || exit $?; source /opt/detector/epic-main/bin/thisepic.sh "$detector_config" || exit $?; [[ "$DETECTOR_CONFIG" == "$detector_config" ]] || { printf "thisepic.sh did not set DETECTOR_CONFIG to requested token: %s\\n" "$detector_config" >&2; exit 1; }; source "$eicrecon_prefix/bin/eicrecon-this.sh" || exit $?; export EICrecon_MY="$plugin_prefix"; export JANA_PLUGIN_PATH="$plugin_prefix/plugins${JANA_PLUGIN_PATH:+:$JANA_PLUGIN_PATH}"; if (( preflight_only )); then geometry_file="$DETECTOR_PATH/$DETECTOR_CONFIG.xml"; test -f "$geometry_file" || { printf "missing detector geometry: %s\\n" "$geometry_file" >&2; exit 1; }; test -x "$eicrecon_prefix/bin/eicrecon" || { printf "missing local EICrecon executable: %s\\n" "$eicrecon_prefix/bin/eicrecon" >&2; exit 1; }; resolved_eicrecon=$(command -v eicrecon) || { printf "eicrecon is not discoverable after setup\\n" >&2; exit 1; }; [[ "$resolved_eicrecon" == "$eicrecon_prefix/bin/eicrecon" ]] || { printf "resolved eicrecon does not match expected path: %s\\n" "$resolved_eicrecon" >&2; exit 1; }; test -f "$plugin_prefix/plugins/quantum_centauro.so" || { printf "missing plugin: %s\\n" "$plugin_prefix/plugins/quantum_centauro.so" >&2; exit 1; }; case ":$JANA_PLUGIN_PATH:" in *":$plugin_prefix/plugins:"*) ;; *) printf "plugin directory is absent from JANA_PLUGIN_PATH\\n" >&2; exit 1;; esac; printf "preflight detector_config=%s\\npreflight geometry=%s\\npreflight eicrecon=%s\\npreflight plugin=%s\\npreflight EICrecon_MY=%s\\npreflight JANA_PLUGIN_PATH=%s\\n" "$DETECTOR_CONFIG" "$geometry_file" "$resolved_eicrecon" "$plugin_prefix/plugins/quantum_centauro.so" "$EICrecon_MY" "$JANA_PLUGIN_PATH"; exit 0; fi; "$eicrecon_prefix/bin/eicrecon" "$@" & child_pid=$!; while :; do wait "$child_pid"; status=$?; kill -0 "$child_pid" 2>/dev/null || break; done; exit "$status"'
+singularity_argv=("$singularity_bin" exec --bind "$bind_root:$bind_root" "$EIC_CONTAINER_SIF" eic-shell "$inner_command" eicrecon-container "$detector_config" "$preflight_only" "$EICRECON_PREFIX" "$QUANTUM_CENTAURO_PREFIX" "$@")
+exec "${singularity_argv[@]}"
