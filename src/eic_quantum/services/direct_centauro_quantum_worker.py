@@ -1,8 +1,4 @@
-"""Persistent local Aer worker for DirectCentauro candidate-index selection.
-
-The worker supports strict JSONL selector requests and the legacy text protocol.
-JSON responses bind to the exact received payload bytes before the framing LF.
-"""
+"""Persistent local Aer worker for strict JSONL DirectCentauro selection."""
 
 from __future__ import annotations
 
@@ -28,8 +24,6 @@ from eic_quantum.payloads.quantum_min_search import (
     build_inverse_power_circuit_with_metadata,
 )
 
-PROTOCOL_VERSION = "v1"
-DIAGNOSTIC_PROTOCOL_VERSION = "v2"
 DEFAULT_MAX_CANDIDATES = 128
 MAX_CANDIDATES = 128
 ACTIVE_HOLDOUT_PROFILES = frozenset({
@@ -152,17 +146,6 @@ class DirectCentauroQuantumWorker:
             "zero_distance_bypass": False,
             "preparation": preparation,
         }
-
-
-def parse_request(line: str) -> tuple[str, list[float]]:
-    fields = line.strip().split()
-    if len(fields) < 2:
-        raise ValueError("expected protocol version followed by one or more distances")
-    if fields[0] == PROTOCOL_VERSION:
-        return fields[0], [float(field) for field in fields[1:]]
-    if fields[0] == DIAGNOSTIC_PROTOCOL_VERSION and len(fields) >= 5:
-        return fields[0], [float(field) for field in fields[4:]]
-    raise ValueError("expected v1 distances or v2 event mode iteration distances")
 
 
 def parse_blind_request(payload: bytes) -> dict[str, Any]:
@@ -342,34 +325,21 @@ def serve(socket_path: Path, worker: DirectCentauroQuantumWorker, lifecycle_path
                         raise ValueError("invalid JSONL framing")
                     payload = framed_line[:-1]
                     line = payload.decode("utf-8", errors="strict")
-                    if line.lstrip().startswith("{"):
-                        decoded = json.loads(line)
-                        if decoded.get("schema_version") in {"active-holdout-admin/v1", "benchmark-timing-admin/v1"}:
-                            administrative = True
-                            response = json.dumps(administrative_response(worker, decoded), sort_keys=True,
-                                                  separators=(",", ":"), allow_nan=False) + "\n"
-                        else:
-                            last_request = validate_request(decoded)
-                            activity_event = last_request["event"]
-                            activity_iteration = last_request["iteration"]
-                            last_request_sha256 = hashlib.sha256(payload).hexdigest()
-                            stage = "worker_handler"
-                            response = json.dumps(attach_worker_metadata(process_blind_request(worker, payload,
-                                                                               wire_request_sha256=last_request_sha256),
-                                                                               pid=os.getpid(), request_sequence=requests + 1), sort_keys=True,
-                                                   separators=(",", ":"), allow_nan=False) + "\n"
-                            selector_succeeded = True
+                    decoded = json.loads(line)
+                    if decoded.get("schema_version") in {"active-holdout-admin/v1", "benchmark-timing-admin/v1"}:
+                        administrative = True
+                        response = json.dumps(administrative_response(worker, decoded), sort_keys=True,
+                                              separators=(",", ":"), allow_nan=False) + "\n"
                     else:
+                        last_request = validate_request(decoded)
+                        activity_event = last_request["event"]
+                        activity_iteration = last_request["iteration"]
+                        last_request_sha256 = hashlib.sha256(payload).hexdigest()
                         stage = "worker_handler"
-                        version, distances = parse_request(line)
-                        selected = worker.select(distances)
-                        if version == PROTOCOL_VERSION:
-                            response = f"{selected['index']}\n"
-                        else:
-                            response = (f"v2 index={selected['index']} worker_pid={os.getpid()} worker_identity=direct_centauro_aer_{os.getpid()} request_sequence={requests + 1} "
-                                         f"state_preparation_ms={selected['state_preparation_ms']:.9f} sampling_ms={selected['sampling_ms']:.9f} "
-                                         f"qubits={selected['qubits']} shots={worker._shots} exponent={worker._exponent_a:.9f} "
-                                         f"zero_distance_bypass={int(selected['zero_distance_bypass'])}\n")
+                        response = json.dumps(attach_worker_metadata(process_blind_request(worker, payload,
+                                                                           wire_request_sha256=last_request_sha256),
+                                                                           pid=os.getpid(), request_sequence=requests + 1), sort_keys=True,
+                                               separators=(",", ":"), allow_nan=False) + "\n"
                         selector_succeeded = True
                 except (ValueError, OverflowError, TypeError) as error:
                     last_error = sanitize_worker_error(error, stage)

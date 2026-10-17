@@ -1,0 +1,144 @@
+{
+  "scope": "fresh-process operational comparison on ten fixed events, not isolated clustering or physical QPU timing",
+  "measurements": 900,
+  "event_count": 10,
+  "blocks": 30,
+  "methods_wall_ms": {
+    "fastjet_centauro": {
+      "n": 300,
+      "median": 1495.7163970029796,
+      "mean": 1490.0680913934896,
+      "stdev": 264.1616753260991,
+      "coefficient_of_variation": 0.17728161340537063,
+      "min": 936.8469229993934,
+      "max": 2442.995498997334,
+      "p05": 946.7799856009151,
+      "p95": 1823.2878157468804,
+      "p99": 2391.721976297922,
+      "iqr": 155.68686100596096
+    },
+    "direct_classical": {
+      "n": 300,
+      "median": 1009.1223675044603,
+      "mean": 1064.8782458232502,
+      "stdev": 131.91738039277772,
+      "coefficient_of_variation": 0.123880247258496,
+      "min": 946.9269660003192,
+      "max": 1714.3447490016115,
+      "p05": 951.3647670528371,
+      "p95": 1311.7515708512656,
+      "p99": 1526.7102226655697,
+      "iqr": 161.1193495018597
+    },
+    "direct_active": {
+      "n": 300,
+      "median": 1146.047162499599,
+      "mean": 1309.8769288529365,
+      "stdev": 406.8972379854485,
+      "coefficient_of_variation": 0.31063776223753303,
+      "min": 948.0541829980211,
+      "max": 3509.7805129989865,
+      "p05": 958.622559851392,
+      "p95": 2176.381975400182,
+      "p99": 2809.5676911180635,
+      "iqr": 519.3351727484696
+    }
+  },
+  "paired_direct_wall_delta_ms": {
+    "n": 300,
+    "median": 61.890765000498504,
+    "mean": 244.9986830296863,
+    "stdev": 375.3399444329911,
+    "coefficient_of_variation": 1.5320080083349323,
+    "min": -334.71918199938955,
+    "max": 2299.357666997821,
+    "p05": -150.4589601943735,
+    "p95": 1019.0362498477043,
+    "p99": 1423.323999065104,
+    "iqr": 505.6665964984859
+  },
+  "paired_direct_wall_ratio": {
+    "n": 300,
+    "median": 1.0563587758441852,
+    "mean": 1.2295314400102701,
+    "stdev": 0.3343770002503659,
+    "coefficient_of_variation": 0.2719548190224179,
+    "min": 0.7476778257970638,
+    "max": 2.899631748189597,
+    "p05": 0.8916840625282461,
+    "p95": 1.8998385979435104,
+    "p99": 2.250458118729017,
+    "iqr": 0.503809541017713
+  },
+  "paired_mean_delta_bootstrap_95_ms": [
+    226.5421869629669,
+    265.0888002296172
+  ],
+  "bootstrap_draws": 5000,
+  "bootstrap_seed": 314159,
+  "bootstrap_unit": "complete timing block with all ten matched fixed events; conditional timing uncertainty, not new event diversity",
+  "worker_start_ms": {
+    "n": 300,
+    "median": 1603.215374498177,
+    "mean": 1679.6871970532568,
+    "stdev": 385.3368412594123,
+    "coefficient_of_variation": 0.2294098817538315,
+    "min": 1302.4286079999001,
+    "max": 3309.2031979977037,
+    "p05": 1302.906731549956,
+    "p95": 2411.5506340505826,
+    "p99": 2809.018965040158,
+    "iqr": 501.13170974873356
+  },
+  "partition_agreements": 300,
+  "partition_comparisons": 300,
+  "active_quality": {
+    "fallback_count": 0,
+    "service_error_count": 0,
+    "timeout_count": 0,
+    "invalid_protocol_responses": 0,
+    "nontrivial_request_count": 2640,
+    "qiskit_applied_count": 2640
+  },
+  "active_trace_timing_ms": {
+    "ipc_latency_ms_total": {
+      "n": 300,
+      "median": 322.64923250000004,
+      "mean": 436.7563742633333,
+      "stdev": 341.8047267988285,
+      "coefficient_of_variation": 0.782598141527625,
+      "min": 67.509519,
+      "max": 2052.702353,
+      "p05": 77.87250075,
+      "p95": 1051.0211860000002,
+      "p99": 1464.4518738899972,
+      "iqr": 465.85555124999996
+    },
+    "state_preparation_ms_total": {
+      "n": 300,
+      "median": 4.067782994752633,
+      "mean": 4.8330476366876,
+      "stdev": 3.031200164095932,
+      "coefficient_of_variation": 0.6271819340422247,
+      "min": 1.2292249884922057,
+      "max": 21.93249500123784,
+      "p05": 1.3669263509655138,
+      "p95": 10.993960389350834,
+      "p99": 14.4046221562894,
+      "iqr": 3.949478747017565
+    },
+    "aer_sampling_ms_total": {
+      "n": 300,
+      "median": 275.357898495713,
+      "mean": 370.40307706009725,
+      "stdev": 294.38738787070724,
+      "coefficient_of_variation": 0.7947757621434214,
+      "min": 52.75052200886421,
+      "max": 1729.716654990625,
+      "p05": 64.47699695363553,
+      "p95": 919.4329419911811,
+      "p99": 1254.218925124294,
+      "iqr": 402.0156259985015
+    }
+  }
+}

@@ -1,4 +1,4 @@
-"""Direct eic-shell command line tools for the Quantum Centauro plugin."""
+"""Managed eic-shell runner for the Quantum Centauro plugin."""
 
 from __future__ import annotations
 
@@ -342,7 +342,6 @@ def run_reconstruction(
     plugin_prefix: str | None,
     eicrecon: str | None,
     environment: Mapping[str, str] | None = None,
-    manual: bool = False,
 ) -> int:
     environment = os.environ if environment is None else environment
     if mode not in {"shadow", "active"}:
@@ -391,8 +390,6 @@ def run_reconstruction(
         print(f"ROOT output: {root_path}", flush=True)
         print(f"Trace output: {trace_path}", flush=True)
         print(f"Detailed reconstruction log: {log_path}", flush=True)
-        if manual:
-            print("Terminal A worker remains running; stop it with Ctrl-C after reconstruction finishes.", flush=True)
     return completed.returncode
 
 
@@ -448,81 +445,27 @@ def _run_direct(arguments: argparse.Namespace) -> int:
             _stop_worker(worker, run_dir)
 
 
-def _run_packaged_worker(run_dir: Path) -> int:
-    from eic_quantum.services.direct_centauro_quantum_worker import main as worker_main
-
-    original_argv = sys.argv
-    try:
-        sys.argv = ["qc-worker", *worker_argv(run_dir)[3:]]
-        return worker_main()
-    finally:
-        sys.argv = original_argv
-
-
-def _run_worker(arguments: argparse.Namespace) -> int:
-    run_dir = create_fresh_run_dir(arguments.run_dir)
-    print(f"Starting local worker in {run_dir}...", flush=True)
-    return _run_packaged_worker(run_dir)
-
-
-def _run_reconstruct(arguments: argparse.Namespace) -> int:
-    return run_reconstruction(
-        arguments.mode,
-        arguments.input,
-        arguments.run_dir,
-        event=arguments.event_index,
-        timeout_milliseconds=arguments.timeout_milliseconds,
-        plugin_prefix=arguments.plugin_prefix,
-        eicrecon=arguments.eicrecon,
-        manual=True,
-    )
-
-
-def _parser(name: str) -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog=name)
-    if name == "qc-run":
-        parser.add_argument("input", type=Path, metavar="INPUT")
-        parser.add_argument("--event-index", type=event_index, default=0)
-        parser.add_argument("--timeout-milliseconds", type=timeout_milliseconds, default=DEFAULT_TIMEOUT_MILLISECONDS)
-        parser.add_argument("--run-dir", type=Path)
-        parser.add_argument("--plugin-prefix")
-        parser.add_argument("--eicrecon")
-    elif name == "qc-worker":
-        parser.add_argument("--run-dir", required=True, type=Path, metavar="DIR")
-    else:
-        parser.add_argument("mode", choices=("shadow", "active"), metavar="MODE")
-        parser.add_argument("input", type=Path, metavar="INPUT")
-        parser.add_argument("--run-dir", required=True, type=Path, metavar="DIR")
-        parser.add_argument("--event-index", type=event_index, default=0)
-        parser.add_argument("--timeout-milliseconds", type=timeout_milliseconds, default=DEFAULT_TIMEOUT_MILLISECONDS)
-        parser.add_argument("--plugin-prefix")
-        parser.add_argument("--eicrecon")
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="qc-run")
+    parser.add_argument("input", type=Path, metavar="INPUT")
+    parser.add_argument("--event-index", type=event_index, default=0)
+    parser.add_argument("--timeout-milliseconds", type=timeout_milliseconds, default=DEFAULT_TIMEOUT_MILLISECONDS)
+    parser.add_argument("--run-dir", type=Path)
+    parser.add_argument("--plugin-prefix")
+    parser.add_argument("--eicrecon")
     return parser
 
 
-def _main(name: str, argv: Sequence[str] | None = None) -> int:
-    parser = _parser(name)
+def _main(argv: Sequence[str] | None = None) -> int:
+    parser = _parser()
     arguments = parser.parse_args(argv)
     try:
-        if name == "qc-run":
-            return _run_direct(arguments)
-        if name == "qc-worker":
-            return _run_worker(arguments)
-        return _run_reconstruct(arguments)
+        return _run_direct(arguments)
     except UsageError as error:
         parser.print_usage(sys.stderr)
         print(f"{parser.prog}: error: {error}", file=sys.stderr)
         return 2
-    return 2
 
 
 def run_main() -> int:
-    return _main("qc-run")
-
-
-def worker_main() -> int:
-    return _main("qc-worker")
-
-
-def reconstruct_main() -> int:
-    return _main("qc-reconstruct")
+    return _main()

@@ -1,0 +1,57 @@
+{
+  "configuration": {
+    "blocks": 30,
+    "default_plugins_excluded": true,
+    "event_index": null,
+    "event_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "exponent": 3.0,
+    "max_candidates": 128,
+    "modes": [
+      "fastjet_centauro",
+      "direct_classical",
+      "direct_active"
+    ],
+    "plugins_by_mode": {
+      "direct_active": [
+        "log",
+        "quantum_centauro",
+        "podio"
+      ],
+      "direct_classical": [
+        "log",
+        "quantum_centauro",
+        "podio"
+      ],
+      "fastjet_centauro": [
+        "log",
+        "reco",
+        "podio"
+      ]
+    },
+    "radius": 0.8,
+    "seed": 314159,
+    "shots": 512,
+    "threads": 1,
+    "timeout_milliseconds": 5000,
+    "warmups_per_cell": 1
+  },
+  "detector_config": "epic_craterlake",
+  "generated_at": "2026-10-04T06:48:14.208130+00:00",
+  "platform": "Linux-7.2.7-100.fc43.x86_64-x86_64-with-glibc2.41",
+  "python": "3.13.12 (main, Apr 30 2026, 00:40:44) [GCC 14.2.0]",
+  "qiskit_packages": {
+    "qiskit": "2.4.1",
+    "qiskit-aer": "0.17.2"
+  }
+}

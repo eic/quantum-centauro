@@ -123,6 +123,6 @@ def test_main_uses_stop_event_for_sigint_and_reports_clean_shutdown(tmp_path: Pa
 
     monkeypatch.setattr(direct_centauro_quantum_worker, "DirectCentauroQuantumWorker", MainWorker)
     monkeypatch.setattr(direct_centauro_quantum_worker, "serve", fake_serve)
-    monkeypatch.setattr(sys, "argv", ["qc-worker", "--socket", str(tmp_path / "worker.sock"), "--lifecycle", str(tmp_path / "worker.lifecycle.json")])
+    monkeypatch.setattr(sys, "argv", ["direct-centauro-worker", "--socket", str(tmp_path / "worker.sock"), "--lifecycle", str(tmp_path / "worker.lifecycle.json")])
     assert direct_centauro_quantum_worker.main() == 0
     assert "Worker stopped cleanly." in capsys.readouterr().out

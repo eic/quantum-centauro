@@ -1,0 +1,19 @@
+{
+  "measurement_date": "2026-10-04",
+  "cohorts": [
+    "operational",
+    "prepared_default",
+    "prepared_one_thread"
+  ],
+  "files": [
+    "frozen_inputs.json",
+    "operational/environment.json",
+    "operational/extended_statistics.json",
+    "operational/runs.csv",
+    "operational/summary.json",
+    "prepared_default/prepared_runs.csv",
+    "prepared_default/prepared_summary.json",
+    "prepared_one_thread/prepared_runs.csv",
+    "prepared_one_thread/prepared_summary.json"
+  ]
+}

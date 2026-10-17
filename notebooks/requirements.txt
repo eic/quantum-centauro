@@ -1,0 +1,6 @@
+numpy>=1.24
+pandas>=2.0
+matplotlib>=3.7
+ipython>=8
+jupyterlab>=4
+jinja2

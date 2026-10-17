@@ -10,6 +10,7 @@ from eic_quantum.contracts.blind_selector import (
     join_evaluation,
     validate_response,
 )
+from eic_quantum import cli
 from eic_quantum.payloads.quantum_min_search import (
     MAX_QISKIT_LOCAL_CANDIDATES,
     _next_power_of_two_dimension,
@@ -149,11 +150,11 @@ def test_shipped_cpp_fail_open_policy_and_trace_fields_are_present():
     assert 'if (!reply.valid)' in reconstruction_source
     assert 'fallbackReason = reply.reason;' in reconstruction_source
     assert 'quantumFailClosed is unsupported; use quantumFallbackPolicy=classical.' in reconstruction_source
-    wrapper = (root / "scripts/run-reconstruction").read_text()
-    assert wrapper.count("quantum_centauro:reconstructeddirectcentaurojets:") == 9
-    assert "Reco:ReconstructedDirectCentauroJets:" not in wrapper
-    assert 'quantumFallbackPolicy=classical' in wrapper
-    assert "-Pplugins=quantum_centauro" in wrapper
+    argv = cli.reconstruction_argv("shadow", root / "input.root", root / "run", root / "eicrecon", event=0, timeout_milliseconds=5000)
+    assert sum("quantum_centauro:reconstructeddirectcentaurojets:" in argument for argument in argv) == 9
+    assert all("Reco:ReconstructedDirectCentauroJets:" not in argument for argument in argv)
+    assert "-Pquantum_centauro:reconstructeddirectcentaurojets:quantumFallbackPolicy=classical" in argv
+    assert "-Pplugins=quantum_centauro" in argv
     assert "reply.probabilities.back() < 0.0" in socket_source
     assert "!std::isfinite(reply.amplitudes.back())" in socket_source
     assert 'worker.contains("max_candidates")' in socket_source
