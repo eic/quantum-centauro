@@ -1,5 +1,8 @@
 # Quantum Centauro
 
+Read the [usage guide](USAGE.md) for a complete walkthrough. It walks through opening the
+demo, regenerating its figures, and optionally running the plugin on your own input. Start with the demo; it needs no EICrecon or quantum hardware.
+
 ## Problem and approach
 
 Centauro jet clustering offers a concrete setting to examine where a circuit-based selector might fit in a classical event-processing workflow. This repository is an experimental external JANA plugin for EICrecon: a C++ plugin handles event processing and clustering, while a local Python/Aer worker can select among candidate indices. It is a demonstrator, not a validated replacement for the established reconstruction.
@@ -16,8 +19,7 @@ python -m pip install -r notebooks/requirements.txt
 jupyter lab notebooks/demo.ipynb
 ```
 
-The plugin and `qc-run` are the execution layer; the notebook demonstrates
-their measured results using only the data included in this repository.
+The plugin and `qc-run` are the execution layer; the notebook demonstrates their measured results using only the data included in this repository.
 
 ## Recorded benchmark
 
